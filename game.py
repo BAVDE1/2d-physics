@@ -1,4 +1,5 @@
 from constants import *
+from water import Wave
 
 
 class Game:
@@ -10,6 +11,8 @@ class Game:
 
         self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
         self.final_screen = pg.display.get_surface()
+
+        self.wave = Wave(100, 30, 100, 90)
 
     def events(self):
         for event in pg.event.get():
@@ -39,6 +42,7 @@ class Game:
         self.canvas_screen.fill(Colours.BG_COL)
 
         # render here
+        self.wave.render(self.canvas_screen)
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL))

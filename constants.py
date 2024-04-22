@@ -5,9 +5,9 @@ from pygame import Vector2 as Vec2
 class GameValues:
     FONT = "Times New Roman"
 
-    SCREEN_WIDTH = 1200
-    SCREEN_HEIGHT = 800
-    RES_MUL = 1
+    SCREEN_WIDTH = 300
+    SCREEN_HEIGHT = 200
+    RES_MUL = 4
 
 
 class Colours:
