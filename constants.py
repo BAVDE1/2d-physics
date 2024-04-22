@@ -1,0 +1,30 @@
+import pygame as pg
+from pygame import Vector2 as Vec2
+
+
+class GameValues:
+    FONT = "Times New Roman"
+
+    SCREEN_WIDTH = 1200
+    SCREEN_HEIGHT = 800
+    RES_MUL = 1
+
+
+class Colours:
+    BG_COL = (0, 10, 10)
+    BG_COL_LIGHT = (0, 15, 15)
+    WHITE = (255, 255, 255)
+    LIGHT_GREY = (150, 150, 150)
+    GREY = (60, 100, 100)
+    DARK_GREY = (30, 50, 50)
+    DARKER_GREY = (10, 25, 25)
+    BLACK = (0, 0, 0)
+
+    RED = (255, 60, 60)
+    ORANGE = (255, 140, 60)
+    YELLOW = (255, 255, 0)
+    GREEN = (100, 255, 100)
+    AQUA = (100, 255, 255)
+    BLUE = (70, 150, 255)
+    MAGENTA = (200, 0, 200)
+    PINK = (255, 100, 255)
