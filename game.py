@@ -12,7 +12,7 @@ class Game:
         self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
         self.final_screen = pg.display.get_surface()
 
-        self.wave = Wave(100, 30, 100, 90)
+        self.wave = Wave(100, 20, 50)
 
     def events(self):
         for event in pg.event.get():
@@ -35,7 +35,7 @@ class Game:
                 self.running = False
 
     def update(self):
-        pass
+        self.wave.update()
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
