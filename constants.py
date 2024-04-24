@@ -25,6 +25,7 @@ class Colours:
     YELLOW = (255, 255, 0)
     GREEN = (100, 255, 100)
     AQUA = (100, 255, 255)
+    LIGHT_BLUE = (194, 221, 255)
     BLUE = (70, 150, 255)
     MAGENTA = (200, 0, 200)
     PINK = (255, 100, 255)

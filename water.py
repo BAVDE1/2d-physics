@@ -93,22 +93,22 @@ class WaterBlock:
             self.mouse_in = False
 
     def render(self, screen: pg.Surface):
-        # collision bounds
-        # pg.draw.rect(screen, Colours.RED, self.coll_bounds)
+        prev_rect = self.display_rect
+        self.display_rect = pg.Rect(self.og_display_rect)
 
         # add sines to y pos
-        self.display_rect = pg.Rect(self.og_display_rect)
         for i, sine in enumerate(self.block_sines):
             val = sine.get_sine()
             if val is None:
                 del self.block_sines[i]
                 continue
 
-            val = val / (i + 1)
+            val = val / (i + 1)  # diminish older sines (so there's no insane stacking)
             self.display_rect.y -= val
 
         # display cube
-        pg.draw.rect(screen, Colours.WHITE, self.display_rect)
+        pg.draw.rect(screen, Colours.BLUE, prev_rect)  # behind block
+        pg.draw.rect(screen, Colours.LIGHT_BLUE, self.display_rect)
 
 
 class Water:

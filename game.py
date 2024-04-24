@@ -44,6 +44,12 @@ class Game:
         # render here
         self.wave.render(self.canvas_screen)
 
+        # outline
+        pg.draw.rect(self.canvas_screen, Colours.WHITE,
+                     pg.Rect(1, 1, GameValues.SCREEN_WIDTH - 2, GameValues.SCREEN_HEIGHT - 2), 1)
+        pg.draw.rect(self.canvas_screen, Colours.WHITE,
+                     pg.Rect(4, 4, GameValues.SCREEN_WIDTH - 8, GameValues.SCREEN_HEIGHT - 8), 2)
+
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL))
         self.final_screen.blit(scaled, Vec2(0, 0))
