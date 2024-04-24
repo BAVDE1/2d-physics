@@ -5,14 +5,14 @@ from water import Water
 class Game:
     def __init__(self):
         self.running = True
-        self.fps = 10
+        self.fps = 60
         self.clock = pg.time.Clock()
         self.keys = pg.key.get_pressed()
 
         self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
         self.final_screen = pg.display.get_surface()
 
-        self.wave = Water(100, 20, 200)
+        self.wave = Water(100, 20, 250)
 
     def events(self):
         for event in pg.event.get():

@@ -31,6 +31,22 @@ class Ripple:
         return self.generated.pop(0) if len(self.generated) > 0 else None
 
 
+class BlockSine:
+    def __init__(self, strength):
+        self.strength = strength
+
+        self.started_time = time.time()
+        self.max_time_alive = 2
+
+    def get_sine(self):
+        time_alive = time.time() - self.started_time
+        time_left = self.max_time_alive - time_alive
+
+        perc = time_left / self.max_time_alive
+        sine = (self.strength * perc) * math.sin(8 * time_alive)
+        return sine if time_left >= 0 else None
+
+
 class WaterBlock:
     def __init__(self, wave, pos: Vec2, size, num):
         self.wave = wave
@@ -43,11 +59,13 @@ class WaterBlock:
                                    self.display_rect.w, self.display_rect.h + (size * 2))
         self.mouse_in = False
 
+        self.sines = []
+
         self.eg = False
 
     def new_sine(self, strength):
         self.eg = True
-        print(strength)
+        self.sines.append(BlockSine(strength))
 
     def update(self):
         mp = pg.Rect(
@@ -63,8 +81,23 @@ class WaterBlock:
             self.mouse_in = False
 
     def render(self, screen: pg.Surface):
+        # collision bounds
         pg.draw.rect(screen, Colours.RED, self.coll_bounds)
+
+        # add sines to y pos
+        self.display_rect = pg.Rect(self.og_display_rect)
+        for i, sine in enumerate(self.sines):
+            val = sine.get_sine()
+            if val is None:
+                del self.sines[i]
+                continue
+
+            self.display_rect.y -= val
+
+        # display cube
         pg.draw.rect(screen, Colours.WHITE, self.display_rect)
+
+        # visual example
         if self.eg:
             self.eg = False
             pg.draw.rect(screen, Colours.BLUE, self.display_rect)
