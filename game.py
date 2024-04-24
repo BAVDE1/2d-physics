@@ -12,7 +12,7 @@ class Game:
         self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
         self.final_screen = pg.display.get_surface()
 
-        self.wave = Water(100, 20, 250)
+        self.wave = Water(100, 50, 250)
 
     def events(self):
         for event in pg.event.get():

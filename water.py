@@ -5,45 +5,59 @@ from constants import *
 
 
 class Ripple:
+    """
+    Generates the block order that a ripple will travel (in both directions)
+    """
     def __init__(self, strength, start_num, total_num):
         self.strength = strength
+        self.strength_decay = 0.98
+
         self.start_num = start_num
         self.total_num = total_num
 
         self.generated = self.generate()
+        self.on_ripple = -1
 
     def generate(self):
         sn = self.start_num
-        li = [[sn]]
+        li = [[sn]]  # first ripple already there
         for number in range(1, self.total_num):
             up = sn + number
             down = sn - number
             seg = []
-            if sn < up < self.total_num:
+            if up < self.total_num:
                 seg.append(up)
-            if sn > down > -1:
+            if down > -1:
                 seg.append(down)
             if len(seg):
                 li.append(seg)
         return li
 
     def get_next(self):
-        return self.generated.pop(0) if len(self.generated) > 0 else None
+        self.on_ripple += 1
+
+        self.strength = self.strength * self.strength_decay
+        val = None if len(self.generated) == 0 or self.strength < 1 else self.generated.pop(0)
+        return [val, self.on_ripple]
 
 
 class BlockSine:
+    """
+    One ripple handled for one block
+    """
     def __init__(self, strength):
         self.strength = strength
 
         self.started_time = time.time()
-        self.max_time_alive = 2
+        self.max_time_alive = 0.8
 
     def get_sine(self):
         time_alive = time.time() - self.started_time
         time_left = self.max_time_alive - time_alive
 
-        perc = time_left / self.max_time_alive
-        sine = (self.strength * perc) * math.sin(8 * time_alive)
+        perc_completed = time_left / self.max_time_alive
+        freq = 18 + (self.strength / 2)  # between 18 - 22
+        sine = (self.strength * perc_completed) * math.sin(freq * time_alive)
         return sine if time_left >= 0 else None
 
 
@@ -58,14 +72,12 @@ class WaterBlock:
         self.coll_bounds = pg.Rect(self.display_rect.x, self.display_rect.y - size,
                                    self.display_rect.w, self.display_rect.h + (size * 2))
         self.mouse_in = False
-
-        self.sines = []
-
-        self.eg = False
+        self.block_sines = []
+        self.max_sines = 10
 
     def new_sine(self, strength):
-        self.eg = True
-        self.sines.append(BlockSine(strength))
+        if strength > 0 and len(self.block_sines) < self.max_sines:
+            self.block_sines.insert(0, BlockSine(strength))
 
     def update(self):
         mp = pg.Rect(
@@ -82,29 +94,25 @@ class WaterBlock:
 
     def render(self, screen: pg.Surface):
         # collision bounds
-        pg.draw.rect(screen, Colours.RED, self.coll_bounds)
+        # pg.draw.rect(screen, Colours.RED, self.coll_bounds)
 
         # add sines to y pos
         self.display_rect = pg.Rect(self.og_display_rect)
-        for i, sine in enumerate(self.sines):
+        for i, sine in enumerate(self.block_sines):
             val = sine.get_sine()
             if val is None:
-                del self.sines[i]
+                del self.block_sines[i]
                 continue
 
+            val = val / (i + 1)
             self.display_rect.y -= val
 
         # display cube
         pg.draw.rect(screen, Colours.WHITE, self.display_rect)
 
-        # visual example
-        if self.eg:
-            self.eg = False
-            pg.draw.rect(screen, Colours.BLUE, self.display_rect)
-
 
 class Water:
-    def __init__(self, y_pos, left_x, right_x, block_size=5):
+    def __init__(self, y_pos, left_x, right_x, block_size=4):
         self.pos: Vec2 = Vec2(left_x, y_pos)
         self.to_pos: Vec2 = Vec2(right_x, y_pos)
 
@@ -112,6 +120,8 @@ class Water:
         self.blocks = self.generate_blocks()
 
         self.ripples = []
+        self.max_ripples = 22
+        self.allow_rebound = 6
 
     def generate_blocks(self):
         li = []
@@ -120,30 +130,35 @@ class Water:
 
         for i in range(num_blocks):
             pos = Vec2(self.pos.x + (self.blocks_size * i), self.pos.y)
-            li.append(
-                WaterBlock(self, pos, self.blocks_size, i)
-            )
+            li.append(WaterBlock(self, pos, self.blocks_size, i))
         return li
+
+    def new_ripple(self, block_num, strength=5):
+        # limit here?
+        self.ripples.insert(0, Ripple(strength, block_num, len(self.blocks)))
 
     def mouse_collided(self, block_num):
         total_ripples = len(self.ripples)
-        if total_ripples < 5:
-            strength = 5 - total_ripples
-            self.ripples.append(Ripple(strength, block_num, len(self.blocks)))
+        if total_ripples < self.max_ripples:
+            self.new_ripple(block_num)
 
     def update(self):
         for b in self.blocks:
             b.update()
 
         for i, ripple in enumerate(self.ripples):
-            ripple_nums = ripple.get_next()
+            ripple_nums, on_ripple = ripple.get_next()
             if ripple_nums is None:
                 del self.ripples[i]
                 continue
 
-            # give next block new sine
+            # give next block new ripple
             for block in ripple_nums:
                 self.blocks[block].new_sine(ripple.strength)
+
+                # rebound ripple if few enough ripples exist (and not on first ripple)
+                if on_ripple > 0 and len(self.ripples) < self.allow_rebound and (block == 0 or block == len(self.blocks) - 1):
+                    self.new_ripple(block, ripple.strength)
 
     def render(self, screen: pg.Surface):
         for b in self.blocks:
