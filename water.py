@@ -2,6 +2,7 @@ import math
 import time
 
 from constants import *
+from Vec2 import Vec2
 
 
 class Ripple:
@@ -69,7 +70,7 @@ class WaterBlock:
         self.wave = wave
         self.num = num
 
-        self.display_rect = pg.Rect(pos, [size] * 2)
+        self.display_rect = pg.Rect(pos.get(), [size] * 2)
         self.og_display_rect = pg.Rect(self.display_rect)
 
         self.coll_bounds = pg.Rect(self.display_rect.x, self.display_rect.y - size,
@@ -84,7 +85,7 @@ class WaterBlock:
 
     def update(self):
         mp = pg.Rect(
-            Vec2(pg.mouse.get_pos()[0] / GameValues.RES_MUL, pg.mouse.get_pos()[1] / GameValues.RES_MUL),
+            Vec2(pg.mouse.get_pos()[0] / GameValues.RES_MUL, pg.mouse.get_pos()[1] / GameValues.RES_MUL).get(),
             [1, 1]
         )
         colliding = self.coll_bounds.contains(mp)

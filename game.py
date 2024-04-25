@@ -1,6 +1,9 @@
+import math
+
 from constants import *
 from water import Water
 from objects import Ball, Box
+from Vec2 import Vec2
 
 
 class Game:
@@ -10,13 +13,13 @@ class Game:
         self.clock = pg.time.Clock()
         self.keys = pg.key.get_pressed()
 
-        self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
+        self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT).get())
         self.final_screen = pg.display.get_surface()
 
         self.water = Water(100, 50, 250)
 
-        self.o1 = Box(Vec2(50, 150))
-        self.o2 = Box(Vec2(70, 150))
+        self.o1 = Box(Vec2(50, 150), Vec2(10, 10))
+        self.o2 = Box(Vec2(70, 150), Vec2(10, 10))
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -50,7 +53,7 @@ class Game:
 
     def rotate_screen_blit(self, image, angle, pos: Vec2):
         rotated_image = pg.transform.rotate(image, angle)
-        new_rect = rotated_image.get_rect(center=image.get_rect(topleft=pos).center)
+        new_rect = rotated_image.get_rect(center=image.get_rect(topleft=pos.get()).center)
         pg.draw.rect(self.canvas_screen, Colours.DARK_GREY, new_rect, 1)
 
         self.canvas_screen.blit(rotated_image, new_rect)
@@ -75,16 +78,18 @@ class Game:
         self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 50))
         self.img_rot += 1
 
-        self.o1.rect.x = pg.mouse.get_pos()[0] / GameValues.RES_MUL
-        self.o1.rect.y = pg.mouse.get_pos()[1] / GameValues.RES_MUL
+        self.o1.pos = Vec2(
+            math.floor(pg.mouse.get_pos()[0] / GameValues.RES_MUL),
+            math.floor(pg.mouse.get_pos()[1] / GameValues.RES_MUL)
+        )
         self.o1.render(self.canvas_screen)
         self.o2.render(self.canvas_screen)
         # self.o1.box_colliding(self.o2)
         print(self.o1.box_colliding(self.o2))
 
         # final
-        scaled = pg.transform.scale(self.canvas_screen, Vec2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL))
-        self.final_screen.blit(scaled, Vec2(0, 0))
+        scaled = pg.transform.scale(self.canvas_screen, Vec2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL).get())
+        self.final_screen.blit(scaled, (0, 0))
 
         pg.display.flip()
 
