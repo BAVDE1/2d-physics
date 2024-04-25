@@ -18,6 +18,7 @@ class Colours:
     GREY = (60, 100, 100)
     DARK_GREY = (30, 50, 50)
     DARKER_GREY = (10, 25, 25)
+    DARKERER_GREY = (5, 15, 15)
     BLACK = (0, 0, 0)
 
     RED = (255, 60, 60)

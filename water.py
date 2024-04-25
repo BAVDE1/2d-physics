@@ -18,6 +18,8 @@ class Ripple:
         self.generated = self.generate()
         self.on_ripple = -1
 
+        self.end_cut_off = 1
+
     def generate(self):
         sn = self.start_num
         li = [[sn]]  # first ripple already there
@@ -37,7 +39,8 @@ class Ripple:
         self.on_ripple += 1
 
         self.strength = self.strength * self.strength_decay
-        val = None if len(self.generated) == 0 or self.strength < 1 else self.generated.pop(0)
+        # None if no more iterations or strength is too low
+        val = None if len(self.generated) == 0 or self.strength < self.end_cut_off else self.generated.pop(0)
         return [val, self.on_ripple]
 
 
@@ -121,7 +124,7 @@ class Water:
 
         self.ripples = []
         self.max_ripples = 22
-        self.allow_rebound = 6
+        self.allow_rebound = 10
 
     def generate_blocks(self):
         li = []
@@ -134,7 +137,6 @@ class Water:
         return li
 
     def new_ripple(self, block_num, strength=5):
-        # limit here?
         self.ripples.insert(0, Ripple(strength, block_num, len(self.blocks)))
 
     def mouse_collided(self, block_num):

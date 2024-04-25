@@ -1,5 +1,6 @@
 from constants import *
 from water import Water
+from objects import Ball, Box
 
 
 class Game:
@@ -12,7 +13,20 @@ class Game:
         self.canvas_screen = pg.Surface(Vec2(GameValues.SCREEN_WIDTH, GameValues.SCREEN_HEIGHT))
         self.final_screen = pg.display.get_surface()
 
-        self.wave = Water(100, 50, 250)
+        self.water = Water(100, 50, 250)
+
+        self.o1 = Box(Vec2(50, 150))
+        self.o2 = Box(Vec2(70, 150))
+
+        # TESTING STUFF
+        self.img = pg.Surface((40, 40), pg.SRCALPHA)
+        c = Colours.DARKER_GREY
+        pg.draw.circle(self.img, c, (20, 20), 15, 7)
+        pg.draw.rect(self.img, c, pg.Rect((self.img.get_width() / 2) - 5, 0, 10, 10))
+        pg.draw.rect(self.img, c, pg.Rect((self.img.get_width() / 2) - 5, 30, 10, 10))
+        pg.draw.rect(self.img, c, pg.Rect(0, (self.img.get_height() / 2) - 5, 10, 10))
+        pg.draw.rect(self.img, c, pg.Rect(30, (self.img.get_height() / 2) - 5, 10, 10))
+        self.img_rot = 0
 
     def events(self):
         for event in pg.event.get():
@@ -34,21 +48,39 @@ class Game:
             if event.type == pg.QUIT or self.keys[pg.K_ESCAPE]:
                 self.running = False
 
+    def rotate_screen_blit(self, image, angle, pos: Vec2):
+        rotated_image = pg.transform.rotate(image, angle)
+        new_rect = rotated_image.get_rect(center=image.get_rect(topleft=pos).center)
+        pg.draw.rect(self.canvas_screen, Colours.DARK_GREY, new_rect, 1)
+
+        self.canvas_screen.blit(rotated_image, new_rect)
+
     def update(self):
-        self.wave.update()
+        self.water.update()
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
         self.canvas_screen.fill(Colours.BG_COL)
 
         # render here
-        self.wave.render(self.canvas_screen)
+        self.water.render(self.canvas_screen)
 
         # outline
         pg.draw.rect(self.canvas_screen, Colours.WHITE,
                      pg.Rect(1, 1, GameValues.SCREEN_WIDTH - 2, GameValues.SCREEN_HEIGHT - 2), 1)
         pg.draw.rect(self.canvas_screen, Colours.WHITE,
                      pg.Rect(4, 4, GameValues.SCREEN_WIDTH - 8, GameValues.SCREEN_HEIGHT - 8), 2)
+
+        # test renders
+        self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 50))
+        self.img_rot += 1
+
+        self.o1.rect.x = pg.mouse.get_pos()[0] / GameValues.RES_MUL
+        self.o1.rect.y = pg.mouse.get_pos()[1] / GameValues.RES_MUL
+        self.o1.render(self.canvas_screen)
+        self.o2.render(self.canvas_screen)
+        # self.o1.box_colliding(self.o2)
+        print(self.o1.box_colliding(self.o2))
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL))
