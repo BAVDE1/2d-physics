@@ -4,8 +4,16 @@ import time
 
 from collisionhandler import CollisionHandler
 from water import Water
-from objects import Ball, Box
+from objects import Object, Ball, Box
 from Vec2 import Vec2
+
+
+def holding_object(obj: Object):
+    """ Reduce natural velocity and replace with a mouse force """
+    m = Vec2(pg.mouse.get_pos()[0] / Values.RES_MUL, pg.mouse.get_pos()[1] / Values.RES_MUL)
+    force = Vec2(m.x - obj.pos.x, m.y - obj.pos.y)
+    obj.velocity *= Vec2(.8, .8)  # reduce natural velocity
+    obj.apply_force(force * 1.2)
 
 
 class Game:
@@ -25,6 +33,9 @@ class Game:
 
         self.o1 = Ball(Vec2(150, 50))
         self.o2 = Ball(Vec2(170, 50))
+        self.o3 = Ball(Vec2(180, 30))
+
+        self.objects = [self.o1, self.o2, self.o3]
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -66,49 +77,44 @@ class Game:
     def update(self):
         self.water.update()
 
-        # get collision info
+        # collision init
         self.collisions.clear()
-        objects = [self.o1, self.o2]
-        for a_i in range(len(objects) - 1):
-            a = objects[a_i]
-            for b_i in range(len(objects) - 1):
-                b = objects[b_i + a_i + 1]  # skip object a_i
-
+        for i, a in enumerate(self.objects):
+            objs = list(self.objects)
+            objs.pop(i)
+            for b in objs:
                 # ignore if both are static
                 if a.mass == 0 and b.mass == 0:
                     continue
 
                 ch = CollisionHandler(a, b)
-                ch.solve_collision()
+                ch.init_collision()
 
-                # new collision found
+                # new collision found, save
                 if ch.collision_count > 0:
                     self.collisions.append(ch)
 
         # apply forces
-        for obj in objects:
+        for obj in self.objects:
             obj.update_velocity(self.delta_time)
 
         # resolve collisions
-        for it in range(1):
+        for it in range(2):
             for coll in self.collisions:
-                print(coll)
                 coll.resolve_collision()
 
         # apply vel to pos
-        for obj in objects:
+        for obj in self.objects:
             obj.update(self.delta_time)
 
         # correct positions
 
         # clear forces
-        for obj in objects:
+        for obj in self.objects:
             obj.force.set(0, 0)
 
-        m = Vec2(pg.mouse.get_pos()[0] / Values.RES_MUL, pg.mouse.get_pos()[1] / Values.RES_MUL)
-        # force = Vec2(m.x - self.o1.pos.x, m.y - self.o1.pos.y)
-        # self.o1.apply_force(force * 100)
-        self.o1.pos = m
+        # mouse object
+        holding_object(self.o1)
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
@@ -123,13 +129,12 @@ class Game:
         pg.draw.rect(self.canvas_screen, Colours.WHITE,
                      pg.Rect(4, 4, Values.SCREEN_WIDTH - 8, Values.SCREEN_HEIGHT - 8), 2)
 
-        objects = [self.o1, self.o2]
-        for obj in objects:
+        for obj in self.objects:
             obj.render(self.canvas_screen)
 
         # test renders
         self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 50))
-        self.img_rot += 1
+        self.img_rot += 60 * self.delta_time
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL).get())

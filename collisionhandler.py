@@ -10,20 +10,22 @@ class CollisionHandler:
         self.normal = Vec2(0, 0)
         self.penetration = 0
 
-        self.handler_func = None  # function
-
         self.collision_count = 0
         self.collisions = []
 
-    def solve_collision(self):
-        if isinstance(self.a, Ball):
-            if isinstance(self.b, Ball):
-                self.handler_func = ball_colliding_ball
+    def init_collision(self):
+        """ Fills necessary attributes of this class """
+        a = int(isinstance(self.a, Ball))
+        b = int(isinstance(self.b, Ball))
+        functions = [
+            [box_colliding_box, box_colliding_ball],
+            [ball_colliding_box, ball_colliding_ball]
+        ]
 
-        self.handler_func(self, self.a, self.b)
+        functions[a][b](self, self.a, self.b)
 
     def resolve_collision(self):
-        rv: Vec2 = self.a.velocity - self.b.velocity  # relative vel
+        rv: Vec2 = self.b.velocity - self.a.velocity  # relative vel
 
         along_normal = rv.dot(self.normal)
 
@@ -44,35 +46,48 @@ class CollisionHandler:
         impulse = self.normal * imp
 
         # affect objects of smaller mass more
-        total_mass = self.a.mass + self.b.mass
-        ratio_a = self.a.mass / total_mass  # use inverse mass?
-        ratio_b = self.b.mass / total_mass  # ^^
-        self.a.velocity -= impulse * ratio_a
-        self.b.velocity += impulse * ratio_b
+        total_mass = inv_mass_a + inv_mass_b
+        ratio_a = inv_mass_a / total_mass  # use inverse mass?
+        ratio_b = inv_mass_b / total_mass  # ^^
+        # self.a.velocity -= impulse * ratio_a
+        # self.b.velocity += impulse * ratio_b
+        # normal application
+        self.a.velocity -= impulse * inv_mass_a
+        self.b.velocity += impulse * inv_mass_b
+        print(rv)
+
+    def __repr__(self):
+        return f'CH({self.a}, {self.b})'
 
 
 def ball_colliding_ball(c: CollisionHandler, a: Ball, b: Ball):
     normal = b.pos - a.pos
-
-    dist_sq = normal.length_sq()
     r = a.radius + b.radius
 
     # not colliding, ignore
-    if dist_sq >= r * r:
+    if normal.length_sq() >= r * r:
         c.collision_count = 0
         return
 
     dist = normal.length()  # distance from each other's positions
     c.collision_count = 1
 
-    if dist == 0:  # no distance, they currently have the same pos
+    if dist == 0:  # they are on same pos (chose random but consistent value)
         c.penetration = a.radius
         c.normal.set(1, 0)
         # add new contact
     else:
         c.penetration = r - dist
-        c.normal.set(normal.x / dist, normal.y / dist)
+        c.normal = normal / dist
         # add new contact
+
+
+def ball_colliding_box(c: CollisionHandler, a: Ball, b: Box):
+    pass
+
+
+def box_colliding_ball(c: CollisionHandler, a: Box, b: Ball):
+    pass
 
 
 def box_colliding_box(collision: CollisionHandler, a: Box, b: Box):
