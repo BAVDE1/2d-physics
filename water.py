@@ -85,7 +85,7 @@ class WaterBlock:
 
     def update(self):
         mp = pg.Rect(
-            Vec2(pg.mouse.get_pos()[0] / GameValues.RES_MUL, pg.mouse.get_pos()[1] / GameValues.RES_MUL).get(),
+            Vec2(pg.mouse.get_pos()[0] / Values.RES_MUL, pg.mouse.get_pos()[1] / Values.RES_MUL).get(),
             [1, 1]
         )
         colliding = self.coll_bounds.contains(mp)
@@ -111,7 +111,8 @@ class WaterBlock:
             self.display_rect.y -= val
 
         # display cube
-        pg.draw.rect(screen, Colours.BLUE, prev_rect)  # behind block
+        if prev_rect != self.display_rect:
+            pg.draw.rect(screen, Colours.BLUE, prev_rect)  # behind block
         pg.draw.rect(screen, Colours.LIGHT_BLUE, self.display_rect)
 
 

@@ -8,7 +8,7 @@ def main():
     global game
 
     pg.init()
-    pg.display.set_mode(pg.Vector2(GameValues.SCREEN_WIDTH * GameValues.RES_MUL, GameValues.SCREEN_HEIGHT * GameValues.RES_MUL))
+    pg.display.set_mode(pg.Vector2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL))
 
     game = Game()
     game.main_loop()

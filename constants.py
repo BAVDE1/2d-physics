@@ -1,7 +1,13 @@
 import pygame as pg
+from Vec2 import Vec2
 
 
-class GameValues:
+class Forces:
+    GRAVITY = Vec2(0, -100)  # 250
+    AIR_VELOCITY = Vec2(0, 0)  # wind?
+
+
+class Values:
     FONT = "Times New Roman"
 
     SCREEN_WIDTH = 300
