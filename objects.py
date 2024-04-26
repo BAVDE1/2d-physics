@@ -8,6 +8,7 @@ class Object:
     def __init__(self, pos: Vec2):
         self.type = 'Object'
         self.pos = pos
+        self.outline = 2
 
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
@@ -29,9 +30,10 @@ class Object:
         self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
 
     def update(self, dt):
-        self.pos += self.velocity * dt  # -velocity cause pygame x&y is backwards :shrug:
+        self.pos += self.velocity * dt
 
-        self.update_velocity(dt)
+        # see https://web.archive.org/web/20161201054257/https://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
+        self.update_velocity(dt)  # update velocity again after pos update
 
     def __repr__(self):
         return f'{self.type}({self.pos})'
@@ -72,4 +74,5 @@ class Box(Object):
         return self.pos + self.size
 
     def render(self, screen: pg.Surface):
-        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), self.size.get()))
+        pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())
+        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), self.size.get()), self.outline)

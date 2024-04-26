@@ -73,8 +73,9 @@ class WaterBlock:
         self.display_rect = pg.Rect(pos.get(), [size] * 2)
         self.og_display_rect = pg.Rect(self.display_rect)
 
-        self.coll_bounds = pg.Rect(self.display_rect.x, self.display_rect.y - size,
-                                   self.display_rect.w, self.display_rect.h + (size * 2))
+        margin = size * 1.5
+        self.coll_bounds = pg.Rect(self.display_rect.x, self.display_rect.y - margin / 2,
+                                   self.display_rect.w, self.display_rect.h + margin)
         self.mouse_in = False
         self.block_sines = []
         self.max_sines = 10
@@ -111,6 +112,7 @@ class WaterBlock:
             self.display_rect.y -= val
 
         # display cube
+        pg.draw.rect(screen, Colours.RED, self.coll_bounds)
         if prev_rect != self.display_rect:
             pg.draw.rect(screen, Colours.BLUE, prev_rect)  # behind block
         pg.draw.rect(screen, Colours.LIGHT_BLUE, self.display_rect)

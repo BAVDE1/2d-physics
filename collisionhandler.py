@@ -11,7 +11,6 @@ class CollisionHandler:
         self.penetration = 0
 
         self.collision_count = 0
-        self.collisions = []
 
     def init_collision(self):
         """ Fills necessary attributes of this class """
@@ -25,6 +24,7 @@ class CollisionHandler:
         functions[a][b](self, self.a, self.b)
 
     def resolve_collision(self):
+        """ Apply impulse to solve collisions """
         rv: Vec2 = self.b.velocity - self.a.velocity  # relative vel
 
         along_normal = rv.dot(self.normal)
@@ -46,15 +46,15 @@ class CollisionHandler:
         impulse = self.normal * imp
 
         # affect objects of smaller mass more
-        total_mass = inv_mass_a + inv_mass_b
-        ratio_a = inv_mass_a / total_mass  # use inverse mass?
-        ratio_b = inv_mass_b / total_mass  # ^^
+        # total_mass = inv_mass_a + inv_mass_b
+        # ratio_a = inv_mass_a / total_mass  # use inverse mass?
+        # ratio_b = inv_mass_b / total_mass  # ^^
         # self.a.velocity -= impulse * ratio_a
         # self.b.velocity += impulse * ratio_b
-        # normal application
+
+        # normal application of impulse
         self.a.velocity -= impulse * inv_mass_a
         self.b.velocity += impulse * inv_mass_b
-        print(rv)
 
     def __repr__(self):
         return f'CH({self.a}, {self.b})'
@@ -75,11 +75,9 @@ def ball_colliding_ball(c: CollisionHandler, a: Ball, b: Ball):
     if dist == 0:  # they are on same pos (chose random but consistent value)
         c.penetration = a.radius
         c.normal.set(1, 0)
-        # add new contact
     else:
         c.penetration = r - dist
         c.normal = normal / dist
-        # add new contact
 
 
 def ball_colliding_box(c: CollisionHandler, a: Ball, b: Box):

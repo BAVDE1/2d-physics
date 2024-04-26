@@ -3,7 +3,7 @@ from Vec2 import Vec2
 
 
 class Forces:
-    GRAVITY = Vec2(0, 0)  # 250
+    GRAVITY = Vec2(0, 250)  # 250
     AIR_VELOCITY = Vec2(0, 0)  # wind?
 
 
