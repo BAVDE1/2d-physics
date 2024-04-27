@@ -4,8 +4,17 @@ from constants import *
 from Vec2 import Vec2
 
 
+class Material:
+    def __init__(self, mat: Materials):
+        self.restitution = mat[Materials.REST]
+        self.density = mat[Materials.DENS]
+
+    def __repr__(self):
+        return f'Material(rest: {self.restitution}, dens: {self.density})'
+
+
 class Object:
-    def __init__(self, pos: Vec2, static=False):
+    def __init__(self, pos: Vec2, static=False, material=Materials.TESTING):
         self.type = 'Object'
         self.pos = pos
         self.outline = 2
@@ -14,8 +23,7 @@ class Object:
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
 
-        self.restitution = .2  # elasticity
-        self.density = 1.0
+        self.material = Material(material)
         self.mass = 0
         self.inv_mass = 0
 
@@ -44,8 +52,8 @@ class Object:
 
 
 class Ball(Object):
-    def __init__(self, pos: Vec2, radius=7, static=False):
-        super().__init__(pos, static)
+    def __init__(self, pos: Vec2, radius=7, static=False, material=Materials.TESTING):
+        super().__init__(pos, static, material)
         self.type = 'Ball'
         self.radius = radius
 
@@ -53,7 +61,7 @@ class Ball(Object):
         self.inv_mass = 0 if static else 1 / self.mass
 
     def compute_mass(self):
-        return math.pi * self.radius * self.radius * self.density
+        return math.pi * self.radius * self.radius * self.material.density
 
     def render(self, screen: pg.Surface):
         ps = 1
@@ -64,8 +72,8 @@ class Ball(Object):
 
 
 class Box(Object):
-    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=False):
-        super().__init__(pos, static)
+    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=False, material=Materials.TESTING):
+        super().__init__(pos, static, material)
         self.type = 'Box'
         self.size = size
 
@@ -77,7 +85,7 @@ class Box(Object):
         return self.pos + self.size
 
     def compute_mass(self):
-        return self.density * self.size.x * self.size.y
+        return self.material.density * self.size.x * self.size.y
 
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())

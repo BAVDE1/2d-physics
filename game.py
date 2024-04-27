@@ -22,7 +22,7 @@ def holding_object(obj: Object, mp: Vec2):
         mp -= obj.size / 2
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y)
 
-    obj.velocity *= Vec2(.8, .8)  # reduce natural velocity
+    obj.velocity *= Vec2(.85, .85)  # reduce natural velocity
     obj.apply_force(force * (obj.inv_mass * 100))
 
 
@@ -138,7 +138,7 @@ class Game:
         # clear forces
         for obj in self.objects:
             obj.force.set(0, 0)
-        print(self.o2.velocity)
+        # print(self.o2.velocity)
 
     def update(self):
         self.water.update()

@@ -36,7 +36,7 @@ class Manifold:
         if along_normal > 0:  # separating, do not collide
             return
 
-        res = min(self.a.restitution, self.b.restitution)  # use smallest restitution
+        res = min(self.a.material.restitution, self.b.material.restitution)  # use smallest restitution
 
         # impulse scalar
         imp = -(1 + res) * along_normal
