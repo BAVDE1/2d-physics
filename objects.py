@@ -14,7 +14,7 @@ class Object:
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
 
-        self.restitution = 0.2  # elasticity
+        self.restitution = .2  # elasticity
         self.density = 1.0
         self.mass = 0
         self.inv_mass = 0
@@ -26,11 +26,12 @@ class Object:
         pass
 
     def update_velocity(self, dt):
-        dt_h = dt * 0.5
-        self.velocity.add_dt(self.force, self.mass * dt_h)  # external force
+        if not self.static:
+            dt_h = dt * 0.5
+            self.velocity.add_dt(self.force, self.mass * dt_h)  # external force
 
-        self.velocity.add_dt(Forces.GRAVITY, dt_h)
-        self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
+            self.velocity.add_dt(Forces.GRAVITY, dt_h)
+            self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
 
     def update(self, dt):
         self.pos += self.velocity * dt

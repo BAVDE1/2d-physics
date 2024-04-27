@@ -136,8 +136,7 @@ def ball_colliding_box(m: Manifold, a: Ball, b: Box):
 
 
 def box_colliding_box(m: Manifold, a: Box, b: Box):
-    a_size_h = a.size / 2
-    b_size_h = b.size / 2
+    a_size_h, b_size_h = a.size / 2, b.size / 2
 
     normal = (b.pos - a_size_h) - (a.pos - b_size_h)  # allows for different size boxes
     x_overlap = a_size_h.x + b_size_h.x - abs(normal.x)

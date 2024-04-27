@@ -43,11 +43,13 @@ class Game:
 
         self.collisions: list[Manifold] = []
 
-        self.o1 = Ball(Vec2(150, 50))
+        self.o1 = Box(Vec2(150, 50))
         self.o2 = Box(Vec2(170, 50))
-        self.o3 = Ball(Vec2(180, 30))
+        # self.o3 = Ball(Vec2(180, 30))
 
-        self.objects = [self.o1, self.o2, self.o3]
+        self.gr = Box(Vec2(50, 120), size=Vec2(200, 40), static=True)
+
+        self.objects = [self.o1, self.o2, self.gr]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -113,8 +115,8 @@ class Game:
                 ch.init_collision()
 
                 # new collision found, save
-                if ch.collision_count > 0:pass
-                self.collisions.append(ch)
+                if ch.collision_count > 0:
+                    self.collisions.append(ch)
 
         # apply forces
         for obj in self.objects:
@@ -136,6 +138,7 @@ class Game:
         # clear forces
         for obj in self.objects:
             obj.force.set(0, 0)
+        print(self.o2.velocity)
 
     def update(self):
         self.water.update()
@@ -170,7 +173,7 @@ class Game:
         pg.draw.rect(self.canvas_screen, Colours.WHITE, pg.Rect(4, 4, Values.SCREEN_WIDTH - 8, Values.SCREEN_HEIGHT - 8), 2)
 
         # test renders
-        self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 50))
+        self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 40))
         self.img_rot += 60 * self.delta_time
 
         # final
