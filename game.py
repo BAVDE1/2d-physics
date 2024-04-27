@@ -43,8 +43,8 @@ class Game:
 
         self.collisions: list[Manifold] = []
 
-        self.o1 = Box(Vec2(150, 50), Vec2(10, 20))
-        self.o2 = Box(Vec2(170, 50), Vec2(20, 10))
+        self.o1 = Ball(Vec2(150, 50))
+        self.o2 = Box(Vec2(170, 50))
         self.o3 = Ball(Vec2(180, 30))
 
         self.objects = [self.o1, self.o2, self.o3]
@@ -85,10 +85,10 @@ class Game:
                 self.running = False
 
     def debug_reset(self):
-        self.o1 = Box(Vec2(150, 50), size=Vec2(50, 50))
-        self.o2 = Box(Vec2(170, 50), size=Vec2(10, 10))
-        self.o3 = Ball(Vec2(180, 30))
-        self.objects = [self.o1, self.o2, self.o3]
+        self.o1 = Ball(Vec2(150, 50))
+        self.o2 = Box(Vec2(170, 50))
+        # self.o3 = Ball(Vec2(180, 30))
+        self.objects = [self.o1, self.o2]
 
     def rotate_screen_blit(self, image, angle, pos: Vec2):
         rotated_image = pg.transform.rotate(image, angle)

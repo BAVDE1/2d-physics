@@ -65,6 +65,10 @@ class Manifold:
         return f'CH({self.a}, {self.b})'
 
 
+def clamp(value, min_v, max_v):
+    return max(min_v, min(max_v, value))
+
+
 def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
     normal = b.pos - a.pos
     r = a.radius + b.radius
@@ -77,20 +81,64 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
     m.collision_count = 1
 
     if dist == 0:  # they are on same pos (chose random but consistent value)
-        m.penetration = a.radius
         m.normal.set(1, 0)
+        m.penetration = a.radius
     else:
-        m.penetration = r - dist
         m.normal = normal / dist
+        m.penetration = r - dist
+    return True
+
+
+def box_colliding_ball(m: Manifold, a: Box, b: Ball):
+    b_size_h = a.size / 2
+
+    norm = (b.pos - b_size_h) - a.pos
+    closest = Vec2(*norm.get())  # closest point on a to center of b
+
+    x_extent = b_size_h.x
+    y_extent = b_size_h.y
+
+    # clamp to edges of box
+    closest.x = clamp(closest.x, -x_extent, x_extent)
+    closest.y = clamp(closest.y, -y_extent, y_extent)
+
+    inside = False
+
+    # centre of the circle is inside box
+    if norm == closest:
+        inside = True
+
+        # find closest axis
+        if abs(norm.x) > abs(norm.y):  # x-axis is closer
+            if closest.x > 0:
+                closest.x = x_extent
+            else:
+                closest.x = -x_extent
+        else:  # y-axis is closer
+            if closest.y > 0:
+                closest.y = y_extent
+            else:
+                closest.y = -y_extent
+
+    # just like circle on circle collision
+    normal = norm - closest
+    r = b.radius
+
+    # not colliding, ignore
+    if normal.length_sq() >= r * r and not inside:
+        return False
+
+    dist = normal.length()
+    m.collision_count = 1
+
+    normal /= dist  # normalise (without another sqrt)
+    m.normal = -normal if inside else normal  # flip the collision if inside
+    m.penetration = r - dist
     return True
 
 
 def ball_colliding_box(m: Manifold, a: Ball, b: Box):
-    pass
-
-
-def box_colliding_ball(m: Manifold, a: Box, b: Ball):
-    ball_colliding_box(m, b, a)
+    return box_colliding_ball(m, b, a)
 
 
 def box_colliding_box(m: Manifold, a: Box, b: Box):

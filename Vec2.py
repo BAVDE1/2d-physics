@@ -56,6 +56,9 @@ class Vec2:
             return Vec2(self.x / other.x, self.y / other.y)
         return Vec2(self.x / other, self.y / other)
 
+    def __eq__(self, other):
+        return isinstance(other, Vec2) and self.get() == other.get()
+
     def __neg__(self):
         return Vec2(-self.x, -self.y)
 
