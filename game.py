@@ -113,8 +113,8 @@ class Game:
                 ch.init_collision()
 
                 # new collision found, save
-                if ch.collision_count > 0:
-                    self.collisions.append(ch)
+                if ch.collision_count > 0:pass
+                self.collisions.append(ch)
 
         # apply forces
         for obj in self.objects:

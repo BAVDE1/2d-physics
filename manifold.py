@@ -27,6 +27,8 @@ class Manifold:
 
     def resolve_collision(self):
         """ Apply impulse to solve collisions """
+        if not self.collision_count:
+            return
         rv: Vec2 = self.b.velocity - self.a.velocity  # relative vel
 
         along_normal = rv.dot(self.normal)
@@ -77,51 +79,41 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
     if normal.length_sq() >= r * r:
         return False
 
-    dist = normal.length()  # distance from each other's positions
+    dist = normal.length()
     m.collision_count = 1
 
-    if dist == 0:  # they are on same pos (chose random but consistent value)
+    if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
         m.penetration = a.radius
     else:
-        m.normal = normal / dist
+        m.normal = normal / dist  # normalise
         m.penetration = r - dist
     return True
 
 
 def box_colliding_ball(m: Manifold, a: Box, b: Ball):
+    inside = False
     b_size_h = a.size / 2
+    x_extent, y_extent = b_size_h.x, b_size_h.y
 
-    norm = (b.pos - b_size_h) - a.pos
-    closest = Vec2(*norm.get())  # closest point on a to center of b
-
-    x_extent = b_size_h.x
-    y_extent = b_size_h.y
+    centre = (b.pos - b_size_h) - a.pos
+    closest = Vec2(*centre.get())  # closest point on a to center of b
 
     # clamp to edges of box
     closest.x = clamp(closest.x, -x_extent, x_extent)
     closest.y = clamp(closest.y, -y_extent, y_extent)
 
-    inside = False
-
     # centre of the circle is inside box
-    if norm == closest:
+    if centre == closest:
         inside = True
 
-        # find closest axis
-        if abs(norm.x) > abs(norm.y):  # x-axis is closer
-            if closest.x > 0:
-                closest.x = x_extent
-            else:
-                closest.x = -x_extent
-        else:  # y-axis is closer
-            if closest.y > 0:
-                closest.y = y_extent
-            else:
-                closest.y = -y_extent
+        if abs(centre.x) > abs(centre.y):  # find closest axis
+            closest.x = x_extent if closest.x > 0 else -x_extent  # x-axis is closer
+        else:
+            closest.y = y_extent if closest.y > 0 else -y_extent  # y-axis is closer
 
     # just like circle on circle collision
-    normal = norm - closest
+    normal = centre - closest
     r = b.radius
 
     # not colliding, ignore
@@ -131,14 +123,16 @@ def box_colliding_ball(m: Manifold, a: Box, b: Ball):
     dist = normal.length()
     m.collision_count = 1
 
-    normal /= dist  # normalise (without another sqrt)
+    normal /= dist  # normalise
     m.normal = -normal if inside else normal  # flip the collision if inside
     m.penetration = r - dist
     return True
 
 
 def ball_colliding_box(m: Manifold, a: Ball, b: Box):
-    return box_colliding_ball(m, b, a)
+    val = box_colliding_ball(m, b, a)
+    m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
+    return val
 
 
 def box_colliding_box(m: Manifold, a: Box, b: Box):
