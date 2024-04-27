@@ -3,8 +3,11 @@ from Vec2 import Vec2
 
 
 class Forces:
-    GRAVITY = Vec2(0, 250)  # 250
-    AIR_VELOCITY = Vec2(0, 0)  # wind?
+    PENETRATION_ALLOWANCE = 0.05  # aka slop
+    POSITIONAL_CORRECTION = 0.2  # 20% - 80%
+    INF_MASS = 0
+    GRAVITY = Vec2(0, 0)  # 250
+    AIR_VELOCITY = Vec2(0, 0)  # for wind or something
 
 
 class Values:

@@ -5,16 +5,19 @@ from Vec2 import Vec2
 
 
 class Object:
-    def __init__(self, pos: Vec2):
+    def __init__(self, pos: Vec2, static=False):
         self.type = 'Object'
         self.pos = pos
         self.outline = 2
+        self.static = static
 
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
+
         self.restitution = 0.2  # elasticity
         self.density = 1.0
         self.mass = 0
+        self.inv_mass = 0
 
     def apply_force(self, force: Vec2):
         self.force += force
@@ -24,7 +27,7 @@ class Object:
 
     def update_velocity(self, dt):
         dt_h = dt * 0.5
-        self.velocity.add_dt(self.force, self.mass * dt_h)  # mass * dt_h
+        self.velocity.add_dt(self.force, self.mass * dt_h)  # external force
 
         self.velocity.add_dt(Forces.GRAVITY, dt_h)
         self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
@@ -32,7 +35,7 @@ class Object:
     def update(self, dt):
         self.pos += self.velocity * dt
 
-        # see https://web.archive.org/web/20161201054257/https://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
+        # see README on better gravity
         self.update_velocity(dt)  # update velocity again after pos update
 
     def __repr__(self):
@@ -40,12 +43,13 @@ class Object:
 
 
 class Ball(Object):
-    def __init__(self, pos: Vec2, radius=7):
-        super().__init__(pos)
+    def __init__(self, pos: Vec2, radius=7, static=False):
+        super().__init__(pos, static)
         self.type = 'Ball'
         self.radius = radius
 
-        self.mass = self.compute_mass()
+        self.mass = Forces.INF_MASS if static else self.compute_mass()
+        self.inv_mass = 0 if static else 1 / self.mass
 
     def compute_mass(self):
         return math.pi * self.radius * self.radius * self.density
@@ -59,19 +63,20 @@ class Ball(Object):
 
 
 class Box(Object):
-    def __init__(self, pos: Vec2, size: Vec2):
-        super().__init__(pos)
+    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=False):
+        super().__init__(pos, static)
         self.type = 'Box'
         self.size = size
 
-        self.mass = self.compute_mass()
-
-    def compute_mass(self):
-        return self.density * (self.size.x * self.size.y)
+        self.mass = Forces.INF_MASS if static else self.compute_mass()
+        self.inv_mass = 0 if static else 1 / self.mass
 
     @property
     def lower_pos(self):
         return self.pos + self.size
+
+    def compute_mass(self):
+        return self.density * self.size.x * self.size.y
 
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())

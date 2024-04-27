@@ -4,21 +4,26 @@ import random
 from constants import *
 import time
 
-from collisionhandler import CollisionHandler
+from manifold import Manifold
 from water import Water
 from objects import Object, Ball, Box
 from Vec2 import Vec2
 from particle import Particle
 
 
-def holding_object(obj: Object):
+def get_mp():
+    """ Get mouse pos relative to the screen scale """
+    return Vec2(*pg.mouse.get_pos()) / Values.RES_MUL
+
+
+def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
-    m = Vec2(pg.mouse.get_pos()[0] / Values.RES_MUL, pg.mouse.get_pos()[1] / Values.RES_MUL)
     if isinstance(obj, Box):
-        m -= obj.size / 2
-    force = Vec2(m.x - obj.pos.x, m.y - obj.pos.y)
-    obj.velocity *= Vec2(.85, .85)  # reduce natural velocity
-    obj.apply_force(force * 1.2)
+        mp -= obj.size / 2
+    force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y)
+
+    obj.velocity *= Vec2(.8, .8)  # reduce natural velocity
+    obj.apply_force(force * (obj.inv_mass * 100))
 
 
 class Game:
@@ -29,16 +34,17 @@ class Game:
         self.keys = pg.key.get_pressed()
         self.prev_frame = self.delta_time = time.time()
         self.resolve_iterations = 2
+        self.mp = get_mp()
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
         self.final_screen = pg.display.get_surface()
 
         self.water = Water(100, 50, 250)
 
-        self.collisions: list[CollisionHandler] = []
+        self.collisions: list[Manifold] = []
 
-        self.o1 = Box(Vec2(150, 50), Vec2(10, 10))
-        self.o2 = Box(Vec2(170, 50), Vec2(10, 10))
+        self.o1 = Box(Vec2(150, 50), Vec2(10, 20))
+        self.o2 = Box(Vec2(170, 50), Vec2(20, 10))
         self.o3 = Ball(Vec2(180, 30))
 
         self.objects = [self.o1, self.o2, self.o3]
@@ -69,7 +75,7 @@ class Game:
 
             # mouse
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-                self.particles.append(Particle(Vec2(*pg.mouse.get_pos()) / Values.RES_MUL, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
+                self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
             if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
                 pass
@@ -79,8 +85,8 @@ class Game:
                 self.running = False
 
     def debug_reset(self):
-        self.o1 = Box(Vec2(150, 50), Vec2(10, 10))
-        self.o2 = Box(Vec2(170, 50), Vec2(10, 10))
+        self.o1 = Box(Vec2(150, 50), size=Vec2(50, 50))
+        self.o2 = Box(Vec2(170, 50), size=Vec2(10, 10))
         self.o3 = Ball(Vec2(180, 30))
         self.objects = [self.o1, self.o2, self.o3]
 
@@ -93,15 +99,17 @@ class Game:
 
     def update_objects(self):
         self.collisions.clear()
+
+        # init collisions
         for i, a in enumerate(self.objects):
             objs = list(self.objects)
             objs.pop(i)
             for b in objs:
-                # ignore if both are static
-                if a.mass == 0 and b.mass == 0:
+                # ignore if both have inf mass
+                if a.mass + b.mass == Forces.INF_MASS:
                     continue
 
-                ch = CollisionHandler(a, b)
+                ch = Manifold(a, b)
                 ch.init_collision()
 
                 # new collision found, save
@@ -122,6 +130,8 @@ class Game:
             obj.update(self.delta_time)
 
         # correct positions
+        for coll in self.collisions:
+            coll.positional_correction()
 
         # clear forces
         for obj in self.objects:
@@ -132,7 +142,7 @@ class Game:
 
         # update particles
         for i, part in enumerate(self.particles):
-            if part.is_off_screen():
+            if part.should_del():
                 del self.particles[i]
                 continue
             part.update(self.delta_time)
@@ -140,7 +150,7 @@ class Game:
         self.update_objects()
 
         # mouse object
-        holding_object(self.o1)
+        holding_object(self.o1, self.mp)
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
@@ -173,6 +183,7 @@ class Game:
             t = time.time()
             self.delta_time = t - self.prev_frame
             self.prev_frame = t
+            self.mp = get_mp()
 
             self.events()
             self.update()

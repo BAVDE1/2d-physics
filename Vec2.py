@@ -12,10 +12,10 @@ class Vec2:
 
     def length_sq(self):
         """ Length squared """
-        return self.x * self.x + self.y * self.y
+        return self.x ** 2 + self.y ** 2
 
     def normalise(self):
-        """ The vector with a length of 1 """
+        """ This vector but with a length of 1 """
         length = self.length()
         return Vec2(self.x / length, self.y / length)
 
@@ -46,9 +46,6 @@ class Vec2:
             return Vec2(self.x - other.x, self.y - other.y)
         return Vec2(self.x - other, self.y - other)
 
-    def __neg__(self):
-        return Vec2(-self.x, -self.y)
-
     def __mul__(self, other):
         if isinstance(other, Vec2):
             return Vec2(self.x * other.x, self.y * other.y)
@@ -58,6 +55,9 @@ class Vec2:
         if isinstance(other, Vec2):
             return Vec2(self.x / other.x, self.y / other.y)
         return Vec2(self.x / other, self.y / other)
+
+    def __neg__(self):
+        return Vec2(-self.x, -self.y)
 
     def __repr__(self):
         return f'Vec2({self.x}, {self.y})'
