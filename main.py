@@ -11,7 +11,10 @@ def main():
     pg.display.set_mode(pg.Vector2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL))
 
     game = Game()
-    game.main_loop()
+
+    # use timestepping for deterministic physics
+    while game.running:
+        game.main_loop()
 
     pg.quit()
 
