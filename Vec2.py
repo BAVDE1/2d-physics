@@ -32,6 +32,7 @@ class Vec2:
         self.y = y
 
     def add_dt(self, vec, dt):
+        """ Multiply vec by dt and add it to instance """
         self.x = self.x + (vec.x * dt)
         self.y = self.y + (vec.y * dt)
         return self

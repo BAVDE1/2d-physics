@@ -35,9 +35,17 @@ class Object:
 
     def update_velocity(self, dt):
         if not self.static:
+            def integrate(force: Vec2, _dt):
+                """ Using Symplectic Euler """
+                acceleration = force * (1 / self.mass)
+                self.velocity.add_dt(acceleration, _dt)
+
             dt_h = dt * 0.5
+            # integrate(self.force, self.mass * dt_h)  # external force
             self.velocity.add_dt(self.force, self.mass * dt_h)  # external force
 
+            # integrate(Forces.GRAVITY, dt_h)
+            # integrate(Forces.AIR_VELOCITY, dt_h)
             self.velocity.add_dt(Forces.GRAVITY, dt_h)
             self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
 
