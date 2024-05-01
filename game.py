@@ -19,7 +19,7 @@ def get_mp():
 def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
     if isinstance(obj, Box):
-        mp -= obj.size / 2
+        mp -= obj.size / 2  # middle
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y)
 
     obj.velocity *= Vec2(.85, .85)  # reduce natural velocity

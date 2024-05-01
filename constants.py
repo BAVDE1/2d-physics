@@ -22,7 +22,7 @@ class Materials:
 class Values:
     FONT = "Times New Roman"
 
-    FPS = 120
+    FPS = 60
     DT = 1 / FPS
     RESTING = (Forces.GRAVITY * DT).length_sq() + 0.0001  # epsilon?
 
