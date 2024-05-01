@@ -38,6 +38,10 @@ class Manifold:
 
         res = min(self.a.material.restitution, self.b.material.restitution)  # use smallest restitution
 
+        print(rv.y * rv.y)
+        if rv.y * rv.y < Values.RESTING:
+            res = 0.0
+
         # impulse scalar
         imp = -(1 + res) * along_normal
         imp /= self.a.inv_mass + self.b.inv_mass

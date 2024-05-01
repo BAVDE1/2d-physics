@@ -29,10 +29,7 @@ def holding_object(obj: Object, mp: Vec2):
 class Game:
     def __init__(self):
         self.running = True
-        # self.fps = 60
-        # self.clock = pg.time.Clock()
         self.keys = pg.key.get_pressed()
-        # self.prev_frame = self.dt = time.time()
         self.resolve_iterations = 2
         self.mp = get_mp()
 
@@ -45,11 +42,14 @@ class Game:
 
         self.o1 = Box(Vec2(150, 50))
         self.o2 = Box(Vec2(170, 50))
-        # self.o3 = Ball(Vec2(180, 30))
+        self.o3 = Ball(Vec2(182, 30))
+        self.o4 = Box(Vec2(168, 10))
 
-        self.gr = Box(Vec2(50, 120), size=Vec2(200, 40), static=True)
+        self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
+        self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
+        self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.gr]
+        self.objects = [self.o1, self.o2, self.o3, self.o4, self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -183,14 +183,8 @@ class Game:
 
     def main_loop(self):
         """ Called every on frame """
-        # t = time.time()
-        # self.dt = t - self.prev_frame
-        # self.prev_frame = t
         self.mp = get_mp()
 
         self.events()
         self.update()
         self.render()
-
-        # self.clock.tick(self.fps)
-        # pg.display.set_caption("{} - fps: {:.2f}".format("2d physics", self.clock.get_fps()))

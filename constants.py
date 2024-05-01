@@ -6,7 +6,7 @@ class Forces:
     PENETRATION_ALLOWANCE = 0.05  # aka slop
     POSITIONAL_CORRECTION = 0.8  # 20% - 80%
     INF_MASS = 0
-    GRAVITY = Vec2(0, 250)  # 250
+    GRAVITY = Vec2(0, 50)  # 250
     AIR_VELOCITY = Vec2(0, 0)  # for wind or something
 
 
@@ -24,6 +24,7 @@ class Values:
 
     FPS = 120
     DT = 1 / FPS
+    RESTING = (Forces.GRAVITY * DT).length_sq() + 0.0001  # epsilon?
 
     SCREEN_WIDTH = 300
     SCREEN_HEIGHT = 200
