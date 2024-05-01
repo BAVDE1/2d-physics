@@ -6,7 +6,7 @@ class Forces:
     PENETRATION_ALLOWANCE = 0.05  # aka slop
     POSITIONAL_CORRECTION = 0.8  # 20% - 80%
     INF_MASS = 0
-    GRAVITY = Vec2(0, 50)  # 250
+    GRAVITY = Vec2(0, 250)  # 250
     AIR_VELOCITY = Vec2(0, 0)  # for wind or something
 
 
@@ -21,6 +21,9 @@ class Materials:
 
 class Values:
     FONT = "Times New Roman"
+
+    FPS = 120
+    DT = 1 / FPS
 
     SCREEN_WIDTH = 300
     SCREEN_HEIGHT = 200

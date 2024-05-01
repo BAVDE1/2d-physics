@@ -1,3 +1,5 @@
+import time
+
 from game import Game
 from constants import *
 
@@ -12,9 +14,23 @@ def main():
 
     game = Game()
 
-    # use timestepping for deterministic physics
+    accumulator = 0
+    frame_start = time.time()
+
+    # time stepping for deterministic physics
     while game.running:
-        game.main_loop()
+        t = time.time()
+
+        accumulator += t - frame_start
+        frame_start = t
+
+        # avoid spiral of death
+        if accumulator > 1:
+            accumulator = 1
+
+        while accumulator >= Values.DT:
+            accumulator -= Values.DT
+            game.main_loop()
 
     pg.quit()
 

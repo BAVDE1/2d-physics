@@ -29,10 +29,10 @@ def holding_object(obj: Object, mp: Vec2):
 class Game:
     def __init__(self):
         self.running = True
-        self.fps = 60
-        self.clock = pg.time.Clock()
+        # self.fps = 60
+        # self.clock = pg.time.Clock()
         self.keys = pg.key.get_pressed()
-        self.prev_frame = self.dt = time.time()
+        # self.prev_frame = self.dt = time.time()
         self.resolve_iterations = 2
         self.mp = get_mp()
 
@@ -120,7 +120,7 @@ class Game:
 
         # apply forces
         for obj in self.objects:
-            obj.update_velocity(self.dt)
+            obj.update_velocity(Values.DT)
 
         # resolve collisions
         for it in range(self.resolve_iterations):
@@ -129,7 +129,7 @@ class Game:
 
         # update objects
         for obj in self.objects:
-            obj.update(self.dt)
+            obj.update(Values.DT)
 
         # correct positions
         for coll in self.collisions:
@@ -148,7 +148,7 @@ class Game:
             if part.should_del():
                 del self.particles[i]
                 continue
-            part.update(self.dt)
+            part.update(Values.DT)
 
         self.update_objects()
 
@@ -174,7 +174,7 @@ class Game:
 
         # test renders
         self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 40))
-        self.img_rot += 60 * self.dt
+        self.img_rot += 60 * Values.DT
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL).get())
@@ -182,15 +182,15 @@ class Game:
         pg.display.flip()
 
     def main_loop(self):
-        """ Continuously called while running """
-        t = time.time()
-        self.dt = t - self.prev_frame
-        self.prev_frame = t
+        """ Called every on frame """
+        # t = time.time()
+        # self.dt = t - self.prev_frame
+        # self.prev_frame = t
         self.mp = get_mp()
 
         self.events()
         self.update()
         self.render()
 
-        self.clock.tick(self.fps)
-        pg.display.set_caption("{} - fps: {:.2f}".format("2d physics", self.clock.get_fps()))
+        # self.clock.tick(self.fps)
+        # pg.display.set_caption("{} - fps: {:.2f}".format("2d physics", self.clock.get_fps()))
