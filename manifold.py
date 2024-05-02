@@ -36,25 +36,17 @@ class Manifold:
         if along_normal > 0:  # separating, do not collide
             return
 
+        is_resting = rv.y ** 2 < Values.RESTING
         res = min(self.a.material.restitution, self.b.material.restitution)  # use smallest restitution
-
-        # print(rv.y * rv.y)
-        if rv.y ** 2 < Values.RESTING:  # and rv.x ** 2 < Values.RESTING
-            res = 0.0
+        # lower y restitution if object is resting on ground. Fixes jitter-ing objects
+        res = Vec2(res, 0.0 if is_resting else res)
 
         # impulse scalar
-        imp = -(1 + res) * along_normal
+        rebound_dir = -(res + 1)
+        imp = Vec2(rebound_dir.x * along_normal, rebound_dir.y * along_normal)
         imp /= self.a.inv_mass + self.b.inv_mass
 
-        # apply impulse
-        impulse = self.normal * imp
-
-        # affect objects of smaller mass more
-        # total_mass = inv_mass_a + inv_mass_b
-        # ratio_a = inv_mass_a / total_mass  # use inverse mass?
-        # ratio_b = inv_mass_b / total_mass  # ^^
-        # self.a.velocity -= impulse * ratio_a
-        # self.b.velocity += impulse * ratio_b
+        impulse = self.normal * imp  # apply impulse
 
         # normal application of impulse (backward cause pygame)
         self.a.velocity -= impulse * self.a.inv_mass

@@ -16,6 +16,7 @@ def main():
 
     accumulator = 0
     frame_start = time.time()
+    current_fps = 0
 
     # time stepping for deterministic physics
     while game.running:
@@ -25,10 +26,13 @@ def main():
         frame_start = t
 
         # avoid spiral of death
-        if accumulator > 1:
-            accumulator = 1
+        if accumulator > .2:
+            accumulator = .2
 
         while accumulator >= Values.DT:
+            current_fps = Values.FPS / ((accumulator - (t - frame_start)) * Values.FPS)
+            pg.display.set_caption("{} - fps: {:.3f}".format("2d physics", current_fps))
+
             accumulator -= Values.DT
             game.main_loop()
 

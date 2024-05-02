@@ -15,9 +15,8 @@ class Material:
 
 class Object:
     def __init__(self, pos: Vec2, static=False, material=Materials.TESTING):
-        self.type = 'Object'
+        self._type = 'Object'
         self.pos = pos
-        self.outline = 2
         self.static = static
 
         self.velocity = Vec2(0, 0)
@@ -26,6 +25,9 @@ class Object:
         self.material = Material(material)
         self.mass = 0
         self.inv_mass = 0
+
+        # texture
+        self._outline_size = 2
 
     def apply_force(self, force: Vec2):
         self.force += force
@@ -48,13 +50,13 @@ class Object:
         self.update_velocity(dt)  # update velocity again after pos update
 
     def __repr__(self):
-        return f'{self.type}({self.pos})'
+        return f'{self._type}({self.pos})'
 
 
 class Ball(Object):
     def __init__(self, pos: Vec2, radius=7, static=False, material=Materials.TESTING):
         super().__init__(pos, static, material)
-        self.type = 'Ball'
+        self._type = 'Ball'
         self.radius = radius
 
         self.mass = Forces.INF_MASS if static else self.compute_mass()
@@ -74,7 +76,7 @@ class Ball(Object):
 class Box(Object):
     def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=False, material=Materials.TESTING):
         super().__init__(pos, static, material)
-        self.type = 'Box'
+        self._type = 'Box'
         self.size = size
 
         self.mass = Forces.INF_MASS if static else self.compute_mass()
@@ -89,4 +91,4 @@ class Box(Object):
 
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())
-        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), self.size.get()), self.outline)
+        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)

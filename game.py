@@ -20,7 +20,7 @@ def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
     if isinstance(obj, Box):
         mp -= obj.size / 2  # middle
-    force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y)
+    force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
 
     obj.velocity *= Vec2(.85, .85)  # reduce natural velocity
     obj.apply_force(force * (obj.inv_mass * 100))
@@ -30,7 +30,7 @@ class Game:
     def __init__(self):
         self.running = True
         self.keys = pg.key.get_pressed()
-        self.resolve_iterations = 2
+        self.resolve_iterations = 4
         self.mp = get_mp()
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
