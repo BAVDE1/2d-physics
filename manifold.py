@@ -12,6 +12,7 @@ class Manifold:
         self.penetration = 0
 
         self.collision_count = 0
+        self.contacts: list[Vec2] = [Vec2(), Vec2()]
 
     def init_collision(self):
         """ Fills necessary attributes of this class depending upon the types of Objects that are colliding """
@@ -31,9 +32,8 @@ class Manifold:
             return
         rv: Vec2 = self.b.velocity - self.a.velocity  # relative vel
 
-        along_normal = rv.dot(self.normal)
-
-        if along_normal > 0:  # separating, do not collide
+        contact_vel = rv.dot(self.normal)
+        if contact_vel > 0:  # separating, do not collide
             return
 
         is_resting = rv.y ** 2 < Values.RESTING
@@ -43,7 +43,7 @@ class Manifold:
 
         # impulse scalar
         rebound_dir = -(res + 1)
-        imp = Vec2(rebound_dir.x * along_normal, rebound_dir.y * along_normal)
+        imp = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
         imp /= self.a.inv_mass + self.b.inv_mass
 
         impulse = self.normal * imp  # apply impulse
@@ -51,6 +51,10 @@ class Manifold:
         # normal application of impulse (backward cause pygame)
         self.a.velocity -= impulse * self.a.inv_mass
         self.b.velocity += impulse * self.b.inv_mass
+
+        if not self.a.static and not self.b.static:
+            print(self.a.velocity, '\n', self.b.velocity)
+            # print(along_normal > 0.002, along_normal, self.a.velocity, self.b.velocity)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
@@ -76,7 +80,7 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
         return False
 
     dist = normal.length()
-    m.collision_count = 1
+    m.collision_count += 1
 
     if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
@@ -117,7 +121,7 @@ def box_colliding_ball(m: Manifold, a: Box, b: Ball):
         return False
 
     dist = normal.length()
-    m.collision_count = 1
+    m.collision_count += 1
 
     normal /= dist  # normalise
     m.normal = -normal if inside else normal  # flip the collision if inside
@@ -141,7 +145,9 @@ def box_colliding_box(m: Manifold, a: Box, b: Box):
         y_overlap = a_size_h.y + b_size_h.y - abs(normal.y)
 
         if y_overlap > 0:
-            m.collision_count = 1
+            m.collision_count += 1
+            # if not a.static and not b.static:
+            #     print('x', x_overlap, 'y', y_overlap, 'n', normal)
 
             # use axis of the least penetration
             if x_overlap < y_overlap:  # push x

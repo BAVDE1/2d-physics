@@ -107,13 +107,12 @@ class Game:
 
         # init collisions
         for i, a in enumerate(self.objects):
-            objs = list(self.objects)
-            objs.pop(i)
-            for b in objs:
-                # ignore if both have inf mass
-                if a.mass + b.mass == Forces.INF_MASS:
-                    continue
-
+            # ignore if static
+            if a.static:
+                continue
+            
+            start = i + 1
+            for b in self.objects[start:]:
                 ch = Manifold(a, b)
                 ch.init_collision()
 
