@@ -19,8 +19,11 @@ def get_mp():
 def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
     if isinstance(obj, Box):
-        mp -= obj.size / 2  # middle
+        mp -= obj.size / 2  # middle of box
+
+    max_f = Vec2(40, 40)
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
+    force.clamp_self(-max_f, max_f)
 
     obj.velocity *= Vec2(.85, .85)  # reduce natural velocity
     obj.apply_force(force * (obj.inv_mass * 100))
@@ -30,7 +33,7 @@ class Game:
     def __init__(self):
         self.running = True
         self.keys = pg.key.get_pressed()
-        self.resolve_iterations = 4
+        self.resolve_iterations = 2
         self.mp = get_mp()
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
@@ -42,14 +45,14 @@ class Game:
 
         self.o1 = Box(Vec2(150, 50))
         self.o2 = Box(Vec2(170, 50))
-        self.o3 = Ball(Vec2(182, 30))
+        self.o3 = Ball(Vec2(175, 30))
         self.o4 = Box(Vec2(168, 10))
 
         self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.o3, self.o4, self.g1, self.g2, self.g3]
+        self.objects = [self.o1, self.o2, self.o4, self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF

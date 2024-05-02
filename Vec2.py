@@ -3,8 +3,8 @@ import math
 
 class Vec2:
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.x: int = x
+        self.y: int = y
 
     def length(self):
         """ Magnitude (using sqrt) """
@@ -26,6 +26,16 @@ class Vec2:
     def get(self):
         """ Tuple conversion of Vec2 """
         return self.x, self.y
+
+    def clamp_self(self, min_v, max_v):
+        """ Clamp vector between a min vec or int, and a max vec or int """
+        if isinstance(min_v, Vec2) and isinstance(max_v, Vec2):
+            self.x = max(min_v.x, min(max_v.x, self.x))
+            self.y = max(min_v.y, min(max_v.y, self.y))
+        else:
+            self.x = max(min_v, min(max_v, self.x))
+            self.y = max(min_v, min(max_v, self.y))
+        return self
 
     def set(self, x, y):
         self.x = x
