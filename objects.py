@@ -54,7 +54,7 @@ class Object:
 
 
 class Ball(Object):
-    def __init__(self, pos: Vec2, radius=7, static=False, material=Materials.TESTING):
+    def __init__(self, pos: Vec2, radius=5, static=False, material=Materials.TESTING):
         super().__init__(pos, static, material)
         self._type = 'Ball'
         self.radius = radius
@@ -74,7 +74,7 @@ class Ball(Object):
 
 
 class Box(Object):
-    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=False, material=Materials.TESTING):
+    def __init__(self, pos: Vec2, size: Vec2 = Vec2(6, 6), static=False, material=Materials.TESTING):
         super().__init__(pos, static, material)
         self._type = 'Box'
         self.size = size

@@ -40,42 +40,41 @@ class Manifold:
         if contact_vel > 0:  # separating, do not collide
             return
 
-        if not self.a.static and not self.b.static:
-            print('a')
+        # if not self.a.static and not self.b.static:
+            # print('a')
 
         is_resting = rv.y ** 2 < Values.RESTING
-        res = min(self.a.material.restitution, self.b.material.restitution)  # use smallest restitution
+        e = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
         # lower y restitution if object is resting on ground. Fixes jitter-ing objects
-        res = Vec2(res, 0.0 if is_resting else res)
+        e = Vec2(e, 0.0 if is_resting else e)
 
         # impulse scalar
-        rebound_dir = -(res + 1)
+        rebound_dir = -(e + 1)
         imp = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
         imp /= self.a.inv_mass + self.b.inv_mass
 
-        impulse = imp * self.normal
+        # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
+        p = (self.a.mass + self.b.mass) * self.penetration
+        imp += p
+
+        j = imp * self.normal  # impulse
 
         # normal application of impulse (backward cause pygame)
-        self.a.apply_impulse(-impulse, ra)
-        self.b.apply_impulse(impulse, rb)
+        self.a.apply_impulse(-j, ra)
+        self.b.apply_impulse(j, rb)
 
         # FRICTION IMPULSE
-
-        if not self.a.static and not self.b.static:
-            print((impulse * self.a.inv_mass).y, self.a.velocity.y)
-            # print(self.a.velocity, '\n', self.b.velocity)
-            # print(along_normal > 0.002, along_normal, self.a.velocity, self.b.velocity)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
         correction = max(self.penetration - Forces.PENETRATION_ALLOWANCE, 0.0) / (self.a.mass + self.b.mass) * Forces.POSITIONAL_CORRECTION
 
         self.a.pos += self.normal * (self.a.inv_mass * correction)
-        self.b.pos -= self.normal * (self.b.inv_mass * correction)
+        self.b.pos += self.normal * (-self.b.inv_mass * correction)
 
     def render(self, screen: pg.Surface):
-        rec_a = pg.Rect(self.contact_point[0].get(), (2, 2))
-        rec_b = pg.Rect(self.contact_point[1].get(), (2, 2))
+        rec_a = pg.Rect(self.contact_point[0].get(), (1, 1))
+        rec_b = pg.Rect(self.contact_point[1].get(), (1, 1))
         pg.draw.rect(screen, Colours.RED, rec_a)
         pg.draw.rect(screen, Colours.RED, rec_b)
 
@@ -103,15 +102,12 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
         m.penetration = a.radius
 
         m.contact_point[0].set(*a.pos.get())
-        m.contact_point[1].set(*b.pos.get())
     else:
         m.normal = normal / dist  # normalise
         m.penetration = r - dist
 
-        cp_a = (m.normal * a.radius) + a.pos
-        cp_b = (-m.normal * b.radius) + b.pos
+        cp_a = a.pos + (m.normal * (a.radius - m.penetration * .5))  # middle of penetration
         m.contact_point[0].set(*cp_a.get())
-        m.contact_point[1].set(*cp_b.get())
     return True
 
 
@@ -176,11 +172,6 @@ def box_colliding_box(m: Manifold, a: Box, b: Box):
                 x_normal = int(normal.x > 0) * 2 - 1
                 m.normal = Vec2(x_normal, 0)
                 m.penetration = x_overlap
-
-                # cp_a = a.pos + (m.normal * a.size.x)
-                # cp_b = b.pos
-                # m.contact_point[0].set(*cp_a.get())
-                # m.contact_point[1].set(*cp_b.get())
             else:  # push y
                 y_normal = int(normal.y > 0) * 2 - 1
                 m.normal = Vec2(0, y_normal)

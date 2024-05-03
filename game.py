@@ -21,7 +21,7 @@ def holding_object(obj: Object, mp: Vec2):
     if isinstance(obj, Box):
         mp -= obj.size / 2  # middle of box
 
-    max_f = Vec2(80, 40)
+    max_f = Vec2(40, 40)
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
     force.clamp_self(-max_f, max_f)
 
@@ -43,18 +43,20 @@ class Game:
 
         self.collisions: list[Manifold] = []
 
-        self.o1 = Box(Vec2(150, 50))
+        self.o1 = Ball(Vec2(0, 0), 10)
         self.o2 = Ball(Vec2(170, 50))
-        self.o3 = Ball(Vec2(170, 10))
+        self.o3 = Ball(Vec2(170, 10), 10)
+        self.o4 = Ball(Vec2(130, 100), 20)
+        self.o5 = Box(Vec2(150, 60), Vec2(10, 10))
+        self.o6 = Box(Vec2(130, 60), Vec2(10, 15))
 
-        self.o2.velocity.y = 250
-        self.o3.velocity.y = 250
+        self.o4.velocity = Vec2(50, -50)
 
         self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.o3, self.g1, self.g2, self.g3]
+        self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
