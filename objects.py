@@ -32,8 +32,8 @@ class Object:
     def apply_force(self, force: Vec2):
         self.force += force
 
-    def apply_impulse(self):
-        pass
+    def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
+        self.velocity.add_self(impulse, self.inv_mass)
 
     def update_velocity(self, dt):
         if not self.static:

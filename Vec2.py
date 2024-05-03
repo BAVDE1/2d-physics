@@ -47,6 +47,11 @@ class Vec2:
         self.y = self.y + (vec.y * dt)
         return self
 
+    def add_self(self, vec, val: float):
+        if isinstance(vec, Vec2):
+            self.x += vec.x * val
+            self.y += vec.y * val
+
     def negate_self(self):
         self.x = -self.x
         self.y = -self.y

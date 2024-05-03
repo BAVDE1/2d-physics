@@ -26,8 +26,7 @@ def main():
         frame_start = t
 
         # avoid spiral of death
-        if accumulator > .2:
-            accumulator = .2
+        accumulator = min(0.2, accumulator)
 
         while accumulator >= Values.DT:
             current_fps = Values.FPS / ((accumulator - (t - frame_start)) * Values.FPS)

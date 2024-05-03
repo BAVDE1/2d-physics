@@ -12,7 +12,7 @@ class Manifold:
         self.penetration = 0
 
         self.collision_count = 0
-        self.contacts: list[Vec2] = [Vec2(), Vec2()]
+        self.contact_point: list[Vec2] = [Vec2(), Vec2()]
 
     def init_collision(self):
         """ Fills necessary attributes of this class depending upon the types of Objects that are colliding """
@@ -30,11 +30,18 @@ class Manifold:
         """ Apply impulse to solve collisions """
         if not self.collision_count:
             return
-        rv: Vec2 = self.b.velocity - self.a.velocity  # relative vel
+
+        # relative values
+        ra: Vec2 = self.contact_point[0] - self.a.pos
+        rb: Vec2 = self.contact_point[1] - self.b.pos
+        rv: Vec2 = self.b.velocity - self.a.velocity
 
         contact_vel = rv.dot(self.normal)
         if contact_vel > 0:  # separating, do not collide
             return
+
+        if not self.a.static and not self.b.static:
+            print('a')
 
         is_resting = rv.y ** 2 < Values.RESTING
         res = min(self.a.material.restitution, self.b.material.restitution)  # use smallest restitution
@@ -46,14 +53,17 @@ class Manifold:
         imp = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
         imp /= self.a.inv_mass + self.b.inv_mass
 
-        impulse = self.normal * imp  # apply impulse
+        impulse = imp * self.normal
 
         # normal application of impulse (backward cause pygame)
-        self.a.velocity -= impulse * self.a.inv_mass
-        self.b.velocity += impulse * self.b.inv_mass
+        self.a.apply_impulse(-impulse, ra)
+        self.b.apply_impulse(impulse, rb)
+
+        # FRICTION IMPULSE
 
         if not self.a.static and not self.b.static:
-            print(self.a.velocity, '\n', self.b.velocity)
+            print((impulse * self.a.inv_mass).y, self.a.velocity.y)
+            # print(self.a.velocity, '\n', self.b.velocity)
             # print(along_normal > 0.002, along_normal, self.a.velocity, self.b.velocity)
 
     def positional_correction(self):
@@ -62,6 +72,12 @@ class Manifold:
 
         self.a.pos += self.normal * (self.a.inv_mass * correction)
         self.b.pos -= self.normal * (self.b.inv_mass * correction)
+
+    def render(self, screen: pg.Surface):
+        rec_a = pg.Rect(self.contact_point[0].get(), (2, 2))
+        rec_b = pg.Rect(self.contact_point[1].get(), (2, 2))
+        pg.draw.rect(screen, Colours.RED, rec_a)
+        pg.draw.rect(screen, Colours.RED, rec_b)
 
     def __repr__(self):
         return f'CH({self.a}, {self.b})'
@@ -85,9 +101,17 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
     if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
         m.penetration = a.radius
+
+        m.contact_point[0].set(*a.pos.get())
+        m.contact_point[1].set(*b.pos.get())
     else:
         m.normal = normal / dist  # normalise
         m.penetration = r - dist
+
+        cp_a = (m.normal * a.radius) + a.pos
+        cp_b = (-m.normal * b.radius) + b.pos
+        m.contact_point[0].set(*cp_a.get())
+        m.contact_point[1].set(*cp_b.get())
     return True
 
 
@@ -146,14 +170,17 @@ def box_colliding_box(m: Manifold, a: Box, b: Box):
 
         if y_overlap > 0:
             m.collision_count += 1
-            # if not a.static and not b.static:
-            #     print('x', x_overlap, 'y', y_overlap, 'n', normal)
 
             # use axis of the least penetration
             if x_overlap < y_overlap:  # push x
                 x_normal = int(normal.x > 0) * 2 - 1
                 m.normal = Vec2(x_normal, 0)
                 m.penetration = x_overlap
+
+                # cp_a = a.pos + (m.normal * a.size.x)
+                # cp_b = b.pos
+                # m.contact_point[0].set(*cp_a.get())
+                # m.contact_point[1].set(*cp_b.get())
             else:  # push y
                 y_normal = int(normal.y > 0) * 2 - 1
                 m.normal = Vec2(0, y_normal)

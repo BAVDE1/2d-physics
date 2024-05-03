@@ -21,7 +21,7 @@ def holding_object(obj: Object, mp: Vec2):
     if isinstance(obj, Box):
         mp -= obj.size / 2  # middle of box
 
-    max_f = Vec2(40, 40)
+    max_f = Vec2(80, 40)
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
     force.clamp_self(-max_f, max_f)
 
@@ -44,15 +44,17 @@ class Game:
         self.collisions: list[Manifold] = []
 
         self.o1 = Box(Vec2(150, 50))
-        self.o2 = Box(Vec2(170, 50))
-        self.o3 = Ball(Vec2(175, 30))
-        self.o4 = Box(Vec2(168, 10))
+        self.o2 = Ball(Vec2(170, 50))
+        self.o3 = Ball(Vec2(170, 10))
+
+        self.o2.velocity.y = 250
+        self.o3.velocity.y = 250
 
         self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.o4, self.g1, self.g2, self.g3]
+        self.objects = [self.o1, self.o2, self.o3, self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -107,12 +109,13 @@ class Game:
 
         # init collisions
         for i, a in enumerate(self.objects):
-            # ignore if static
-            if a.static:
-                continue
-            
             start = i + 1
+
             for b in self.objects[start:]:
+                # ignore if both static
+                if a.static and b.static:
+                    continue
+
                 ch = Manifold(a, b)
                 ch.init_collision()
 
@@ -169,6 +172,9 @@ class Game:
 
         for obj in self.objects:
             obj.render(self.canvas_screen)
+
+        for coll in self.collisions:
+            coll.render(self.canvas_screen)
 
         # outline
         pg.draw.rect(self.canvas_screen, Colours.WHITE, pg.Rect(1, 1, Values.SCREEN_WIDTH - 2, Values.SCREEN_HEIGHT - 2), 1)
