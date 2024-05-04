@@ -16,7 +16,6 @@ def main():
 
     accumulator = 0
     frame_start = time.time()
-    current_fps = 0
 
     # time stepping for deterministic physics
     while game.running:

@@ -24,35 +24,31 @@ class Vec2:
         return self.x * vec.x + self.y * vec.y
 
     def get(self):
-        """ Tuple conversion of Vec2 """
+        """ Tuple representation of Vec2 """
         return self.x, self.y
 
     def clamp_self(self, min_v, max_v):
-        """ Clamp vector between a min vec or int, and a max vec or int """
+        """ Clamp vector between a min vec or int, and a max vec or int (in place) """
         if isinstance(min_v, Vec2) and isinstance(max_v, Vec2):
             self.x = max(min_v.x, min(max_v.x, self.x))
             self.y = max(min_v.y, min(max_v.y, self.y))
         else:
             self.x = max(min_v, min(max_v, self.x))
             self.y = max(min_v, min(max_v, self.y))
-        return self
 
-    def set(self, x, y):
-        self.x = x
-        self.y = y
-
-    def add_dt(self, vec, dt):
-        """ Multiply vec by dt and add it to instance """
-        self.x = self.x + (vec.x * dt)
-        self.y = self.y + (vec.y * dt)
-        return self
+    def set(self, x=None, y=None):
+        """ Set either x and/or y of this vector (in place) """
+        self.x = x if x is not None else self.x
+        self.y = y if y is not None else self.y
 
     def add_self(self, vec, val: float):
+        """ Multiply vec by val and add it to instance (in place) """
         if isinstance(vec, Vec2):
             self.x += vec.x * val
             self.y += vec.y * val
 
     def negate_self(self):
+        """ Negate own x and y (in place) """
         self.x = -self.x
         self.y = -self.y
 

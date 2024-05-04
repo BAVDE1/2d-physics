@@ -54,10 +54,10 @@ class Object:
         """ Should be called twice - before updating pos and after - for each physics calculation """
         if not self.static:
             dt_h = dt * 0.5
-            self.velocity.add_dt(self.force, dt_h)  # external force
+            self.velocity.add_self(self.force, dt_h)  # external force
 
-            self.velocity.add_dt(Forces.GRAVITY, dt_h)
-            self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
+            self.velocity.add_self(Forces.GRAVITY, dt_h)
+            self.velocity.add_self(Forces.AIR_VELOCITY, dt_h)
 
     def update(self, dt):
         """ See README on better dt """

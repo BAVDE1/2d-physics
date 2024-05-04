@@ -44,6 +44,7 @@ class Game:
 
         self.collisions: list[Manifold] = []
 
+        # objects
         self.o1 = Ball(Vec2(0, 0), 10)
         self.o2 = Ball(Vec2(170, 50))
         self.o3 = Ball(Vec2(170, 10), 10)

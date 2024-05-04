@@ -12,7 +12,7 @@ class Manifold:
         self.penetration = 0
 
         self.collision_count = 0
-        self.contact_point: list[Vec2] = [Vec2(), Vec2()]
+        self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
     def init_collision(self):
         """
@@ -34,8 +34,8 @@ class Manifold:
             return
 
         # relative values
-        ra: Vec2 = self.contact_point[0] - self.a.pos
-        rb: Vec2 = self.contact_point[1] - self.b.pos
+        ra: Vec2 = self.contact_points[0] - self.a.pos
+        rb: Vec2 = self.contact_points[1] - self.b.pos
         rv: Vec2 = self.b.velocity - self.a.velocity
 
         contact_vel = rv.dot(self.normal)
@@ -44,18 +44,16 @@ class Manifold:
 
         is_resting = rv.y ** 2 < Values.RESTING
         e = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
-        # lower y restitution if object is resting on ground. Fixes jitter-ing objects
-        e = Vec2(e, 0.0 if is_resting else e)
+        e = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
 
-        # impulse scalar
         rebound_dir = -(e + 1)
-        imp = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
-        imp /= self.a.inv_mass + self.b.inv_mass
+        j_scalar = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
+        j_scalar /= self.a.inv_mass + self.b.inv_mass
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
-        imp += (self.a.mass + self.b.mass) * self.penetration
+        j_scalar += (self.a.mass + self.b.mass) * self.penetration
 
-        j = imp * self.normal  # impulse
+        j = j_scalar * self.normal  # impulse
 
         # normal application of impulse (backward cause pygame)
         self.a.apply_impulse(-j, ra)
@@ -71,10 +69,11 @@ class Manifold:
         self.b.pos += self.normal * (-self.b.inv_mass * correction)
 
     def render(self, screen: pg.Surface):
-        rec_a = pg.Rect(self.contact_point[0].get(), (1, 1))
-        rec_b = pg.Rect(self.contact_point[1].get(), (1, 1))
-        pg.draw.rect(screen, Colours.RED, rec_a)
-        pg.draw.rect(screen, Colours.RED, rec_b)
+        for ci in range(self.collision_count):
+            cp = self.contact_points[ci]
+            if cp != Vec2(0, 0):
+                rec_a = pg.Rect(cp.get(), (1, 1))
+                pg.draw.rect(screen, Colours.RED, rec_a)
 
     def __repr__(self):
         return f'CH({self.a}, {self.b})'
@@ -99,13 +98,13 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
         m.normal.set(1, 0)
         m.penetration = a.radius
 
-        m.contact_point[0].set(*a.pos.get())
+        m.contact_points[0].set(*a.pos.get())
     else:
         m.normal = normal / dist  # normalise
         m.penetration = r - dist
 
         cp_a = a.pos + (m.normal * (a.radius - m.penetration * .5))  # middle of penetration
-        m.contact_point[0].set(*cp_a.get())
+        m.contact_points[0].set(*cp_a.get())
     return True
 
 
