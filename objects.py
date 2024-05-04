@@ -18,6 +18,7 @@ class Object:
         self._type = 'Object'
         self.pos = pos
         self.static = static
+        self.colour = Colours.WHITE
 
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
@@ -84,10 +85,10 @@ class Ball(Object):
 
     def render(self, screen: pg.Surface):
         ps = 1  # half of line size
-        pg.draw.line(screen, Colours.WHITE,
+        pg.draw.line(screen, self.colour,
                      Vec2(self.pos.x - ps, self.pos.y).get(), Vec2(self.pos.x - ps, self.pos.y - self.radius).get(), 2)
-        pg.draw.circle(screen, Colours.WHITE, self.pos.get(), ps)
-        pg.draw.circle(screen, Colours.WHITE, self.pos.get(), self.radius, 2)
+        pg.draw.circle(screen, self.colour, self.pos.get(), ps)
+        pg.draw.circle(screen, self.colour, self.pos.get(), self.radius, 2)
 
 
 class Box(Object):
@@ -108,5 +109,5 @@ class Box(Object):
         self.inv_mass = 0 if self.static else 1 / self.mass
 
     def render(self, screen: pg.Surface):
-        pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())
-        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)
+        pg.draw.line(screen, self.colour, self.pos.get(), (self.lower_pos - 1).get())
+        pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)

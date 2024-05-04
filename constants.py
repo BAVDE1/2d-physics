@@ -28,7 +28,7 @@ class Values:
 
     SCREEN_WIDTH = 300
     SCREEN_HEIGHT = 200
-    RES_MUL = 3
+    RES_MUL = 4
 
 
 class Colours:

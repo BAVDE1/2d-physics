@@ -86,6 +86,13 @@ class Game:
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
                 self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
+                for i in range(10):
+                    p = Vec2(*self.mp.get())
+                    p.y -= 10
+                    b = Ball(p, 5)
+                    b.colour = [random.randrange(0, 255) for _ in range(3)]
+                    self.objects.append(b)
+
             if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
                 pass
 
@@ -157,6 +164,7 @@ class Game:
 
         self.update_particles()
         self.update_objects()
+        print(len(self.objects))
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
@@ -175,6 +183,7 @@ class Game:
             coll.render(self.canvas_screen)
 
         # outline
+        pg.draw.rect(self.canvas_screen, Colours.BG_COL, pg.Rect((0, 0), (Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT)), 5)
         pg.draw.rect(self.canvas_screen, Colours.WHITE, pg.Rect(1, 1, Values.SCREEN_WIDTH - 2, Values.SCREEN_HEIGHT - 2), 1)
         pg.draw.rect(self.canvas_screen, Colours.WHITE, pg.Rect(4, 4, Values.SCREEN_WIDTH - 8, Values.SCREEN_HEIGHT - 8), 2)
 
