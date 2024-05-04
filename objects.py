@@ -30,24 +30,40 @@ class Object:
         self._outline_size = 2
 
     def apply_force(self, force: Vec2):
+        """ Apply external force to object """
         self.force += force
 
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
-        self.velocity.add_self(impulse, self.inv_mass)
+        """ Apply given impulse to self (multiplied by inv_mass) """
+        if not self.static:
+            self.velocity.add_self(impulse, self.inv_mass)
+
+    def is_out_of_bounds(self):
+        """ Is object too far from screen bounds to be considered worth keeping alive """
+        below = self.pos.y > Values.SCREEN_HEIGHT * 2
+        left = self.pos.x < 0 - Values.SCREEN_WIDTH
+        right = self.pos.x > Values.SCREEN_WIDTH * 2
+        return below or left or right
+
+    def static_correction(self):
+        """ Reset velocity on static objects """
+        if self.static:
+            self.velocity.set(0, 0)
 
     def update_velocity(self, dt):
+        """ Should be called twice - before updating pos and after - for each physics calculation """
         if not self.static:
             dt_h = dt * 0.5
-            self.velocity.add_dt(self.force, self.mass * dt_h)  # external force
+            self.velocity.add_dt(self.force, dt_h)  # external force
 
             self.velocity.add_dt(Forces.GRAVITY, dt_h)
             self.velocity.add_dt(Forces.AIR_VELOCITY, dt_h)
 
     def update(self, dt):
+        """ See README on better dt """
         self.pos += self.velocity * dt
 
-        # see README on better gravity
-        self.update_velocity(dt)  # update velocity again after pos update
+        self.update_velocity(dt)
 
     def __repr__(self):
         return f'{self._type}({self.pos})'
@@ -59,14 +75,15 @@ class Ball(Object):
         self._type = 'Ball'
         self.radius = radius
 
-        self.mass = Forces.INF_MASS if static else self.compute_mass()
-        self.inv_mass = 0 if static else 1 / self.mass
+        self.compute_mass()
 
     def compute_mass(self):
-        return math.pi * self.radius * self.radius * self.material.density
+        mass = math.pi * self.radius * self.radius * self.material.density
+        self.mass = Forces.INF_MASS if self.static else mass
+        self.inv_mass = 0 if self.static else 1 / self.mass
 
     def render(self, screen: pg.Surface):
-        ps = 1
+        ps = 1  # half of line size
         pg.draw.line(screen, Colours.WHITE,
                      Vec2(self.pos.x - ps, self.pos.y).get(), Vec2(self.pos.x - ps, self.pos.y - self.radius).get(), 2)
         pg.draw.circle(screen, Colours.WHITE, self.pos.get(), ps)
@@ -79,15 +96,16 @@ class Box(Object):
         self._type = 'Box'
         self.size = size
 
-        self.mass = Forces.INF_MASS if static else self.compute_mass()
-        self.inv_mass = 0 if static else 1 / self.mass
+        self.compute_mass()
 
     @property
     def lower_pos(self):
         return self.pos + self.size
 
     def compute_mass(self):
-        return self.material.density * self.size.x * self.size.y
+        mass = self.material.density * self.size.x * self.size.y
+        self.mass = Forces.INF_MASS if self.static else mass
+        self.inv_mass = 0 if self.static else 1 / self.mass
 
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, Colours.WHITE, self.pos.get(), (self.lower_pos - 1).get())

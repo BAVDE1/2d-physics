@@ -15,7 +15,9 @@ class Manifold:
         self.contact_point: list[Vec2] = [Vec2(), Vec2()]
 
     def init_collision(self):
-        """ Fills necessary attributes of this class depending upon the types of Objects that are colliding """
+        """
+        Fills necessary values of this class (normal, pen, contact points) depending upon the types of Objects that are colliding
+        """
         a = int(isinstance(self.a, Ball))
         b = int(isinstance(self.b, Ball))
         functions = [
@@ -27,7 +29,7 @@ class Manifold:
         functions[a][b](self, self.a, self.b)
 
     def resolve_collision(self):
-        """ Apply impulse to solve collisions """
+        """ Apply impulse on colliding objects to solve collisions """
         if not self.collision_count:
             return
 
@@ -40,9 +42,6 @@ class Manifold:
         if contact_vel > 0:  # separating, do not collide
             return
 
-        # if not self.a.static and not self.b.static:
-            # print('a')
-
         is_resting = rv.y ** 2 < Values.RESTING
         e = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
         # lower y restitution if object is resting on ground. Fixes jitter-ing objects
@@ -54,8 +53,7 @@ class Manifold:
         imp /= self.a.inv_mass + self.b.inv_mass
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
-        p = (self.a.mass + self.b.mass) * self.penetration
-        imp += p
+        imp += (self.a.mass + self.b.mass) * self.penetration
 
         j = imp * self.normal  # impulse
 

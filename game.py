@@ -24,6 +24,7 @@ def holding_object(obj: Object, mp: Vec2):
     max_f = Vec2(40, 40)
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
     force.clamp_self(-max_f, max_f)
+    force *= obj.mass
 
     obj.velocity *= Vec2(.85, .85)  # reduce natural velocity
     obj.apply_force(force * (obj.inv_mass * 100))
@@ -33,7 +34,7 @@ class Game:
     def __init__(self):
         self.running = True
         self.keys = pg.key.get_pressed()
-        self.resolve_iterations = 2
+        self.resolve_iterations = 10  # higher = more stable but less performant
         self.mp = get_mp()
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
@@ -48,15 +49,14 @@ class Game:
         self.o3 = Ball(Vec2(170, 10), 10)
         self.o4 = Ball(Vec2(130, 100), 20)
         self.o5 = Box(Vec2(150, 60), Vec2(10, 10))
-        self.o6 = Box(Vec2(130, 60), Vec2(10, 15))
-
-        self.o4.velocity = Vec2(50, -50)
+        self.o6 = Box(Vec2(132, 60), Vec2(10, 15))
 
         self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3]
+        self.static_objects = [self.g1, self.g2, self.g3]
+        self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -69,15 +69,14 @@ class Game:
         pg.draw.rect(self.img, c, pg.Rect(30, (self.img.get_height() / 2) - 5, 10, 10))
         self.img_rot = 0
 
+    def get_all_objects(self):
+        return self.static_objects + self.objects
+
     def events(self):
         for event in pg.event.get():
             # key input
             if event.type == pg.KEYDOWN:
                 self.keys = pg.key.get_pressed()
-
-                # reset objects
-                if event.key == pg.K_r:
-                    self.debug_reset()
 
             if event.type == pg.KEYUP:
                 self.keys = pg.key.get_pressed()
@@ -93,12 +92,6 @@ class Game:
             if event.type == pg.QUIT or self.keys[pg.K_ESCAPE]:
                 self.running = False
 
-    def debug_reset(self):
-        self.o1 = Ball(Vec2(150, 50))
-        self.o2 = Box(Vec2(170, 50))
-        # self.o3 = Ball(Vec2(180, 30))
-        self.objects = [self.o1, self.o2]
-
     def rotate_screen_blit(self, image, angle, pos: Vec2):
         rotated_image = pg.transform.rotate(image, angle)
         new_rect = rotated_image.get_rect(center=image.get_rect(topleft=pos.get()).center)
@@ -110,31 +103,30 @@ class Game:
         self.collisions.clear()
 
         # init collisions
-        for i, a in enumerate(self.objects):
+        objs = self.get_all_objects()
+        for i, a in enumerate(objs):
             start = i + 1
 
-            for b in self.objects[start:]:
-                # ignore if both static
-                if a.static and b.static:
+            for b in objs[start:]:
+                if a.static and b.static:  # ignore if both static
                     continue
 
                 ch = Manifold(a, b)
                 ch.init_collision()
 
-                # new collision found, save
                 if ch.collision_count > 0:
                     self.collisions.append(ch)
 
-        # apply forces
+        # apply left-over velocity
         for obj in self.objects:
             obj.update_velocity(Values.DT)
 
-        # resolve collisions
+        # resolve collisions, apply impulses
         for it in range(self.resolve_iterations):
             for coll in self.collisions:
                 coll.resolve_collision()
 
-        # update objects
+        # apply velocity
         for obj in self.objects:
             obj.update(Values.DT)
 
@@ -142,25 +134,28 @@ class Game:
         for coll in self.collisions:
             coll.positional_correction()
 
-        # clear forces
-        for obj in self.objects:
+        # conclusion
+        for i, obj in enumerate(self.objects):
             obj.force.set(0, 0)
-        # print(self.o2.velocity)
 
-    def update(self):
-        self.water.update()
+            if obj.is_out_of_bounds():
+                del self.objects[i]
 
-        # update particles
+    def update_particles(self):
         for i, part in enumerate(self.particles):
             if part.should_del():
                 del self.particles[i]
                 continue
             part.update(Values.DT)
 
-        self.update_objects()
-
+    def update(self):
         # mouse object
         holding_object(self.o1, self.mp)
+
+        self.water.update()
+
+        self.update_particles()
+        self.update_objects()
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
@@ -172,7 +167,7 @@ class Game:
         for part in self.particles:
             part.render(self.canvas_screen)
 
-        for obj in self.objects:
+        for obj in self.get_all_objects():
             obj.render(self.canvas_screen)
 
         for coll in self.collisions:
