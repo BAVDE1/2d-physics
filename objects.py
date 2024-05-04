@@ -39,12 +39,13 @@ class Object:
         if not self.static:
             self.velocity.add_self(impulse, self.inv_mass)
 
-    def is_out_of_bounds(self):
+    def is_out_of_bounds(self, check_top=False):
         """ Is object too far from screen bounds to be considered worth keeping alive """
+        above = self.pos.y < 0 - Values.SCREEN_HEIGHT
         below = self.pos.y > Values.SCREEN_HEIGHT * 2
         left = self.pos.x < 0 - Values.SCREEN_WIDTH
         right = self.pos.x > Values.SCREEN_WIDTH * 2
-        return below or left or right
+        return below or left or right or (check_top and above)
 
     def static_correction(self):
         """ Reset velocity on static objects """
