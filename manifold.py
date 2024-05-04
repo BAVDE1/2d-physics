@@ -73,6 +73,7 @@ class Manifold:
             cp = self.contact_points[ci]
             if cp != Vec2(0, 0):
                 rec_a = pg.Rect(cp.get(), (1, 1))
+                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 3).get())
                 pg.draw.rect(screen, Colours.RED, rec_a)
 
     def __repr__(self):

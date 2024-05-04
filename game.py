@@ -31,41 +31,11 @@ def holding_object(obj: Object, mp: Vec2):
     obj.apply_force(force * (obj.inv_mass * 100))
 
 
-class Grid:
-    def __init__(self):
-        self.cell_size = 40
-        self.width = math.ceil(Values.SCREEN_WIDTH / self.cell_size)
-        self.height = math.ceil(Values.SCREEN_HEIGHT / self.cell_size)
-        self.size = self.width * self.height
-        self.cells = {}
-
-    def clear(self):
-        self.cells.clear()
-
-    def get_index(self, x, y):
-        return math.floor(x / self.cell_size) * self.height + math.floor(y / self.cell_size)
-
-    def add(self, obj, x, y, i):
-        index = self.get_index(x, y)
-        if index in self.cells:
-            self.cells[index].append(obj)
-        else:
-            self.cells[index] = [obj]
-
-    def add_objects_to_grid(self, objects: list, static_objects: list):
-        for i, obj in enumerate(objects):
-            if 0 < obj.pos.x < Values.SCREEN_WIDTH and 0 < obj.pos.y < Values.SCREEN_HEIGHT:
-                self.add(obj, obj.pos.x, obj.pos.y, i)
-        # add static
-        for key in self.cells:
-            self.cells[key] += static_objects
-
-
 class Game:
     def __init__(self):
         self.running = True
         self.keys = pg.key.get_pressed()
-        self.resolve_iterations = 10  # higher = more stable but less performant
+        self.resolve_iterations = 8  # higher = more stable but less performant
         self.mp = get_mp()
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
@@ -74,13 +44,12 @@ class Game:
         self.water = Water(100, 50, 250)
 
         self.collisions: list[Manifold] = []
-        self.grid = Grid()
 
         # objects
         self.o1 = Ball(Vec2(10, 10), 10)
-        self.o2 = Ball(Vec2(60, 10))
+        self.o2 = Ball(Vec2(70, 60))
         self.o3 = Ball(Vec2(170, 10), 10)
-        self.o4 = Ball(Vec2(130, 100), 20)
+        self.o4 = Ball(Vec2(130, 100), 20, layer=2)
         self.o5 = Box(Vec2(150, 60), Vec2(10, 10))
         self.o6 = Box(Vec2(132, 60), Vec2(10, 15))
 
@@ -88,8 +57,8 @@ class Game:
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.static_objects = [self.g1, self.g2, self.g3]
         self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6]
+        self.static_objects = [self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -118,8 +87,8 @@ class Game:
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
                 self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
-                for i in range(100):
-                    b = Ball(Vec2(*self.mp.get()), 5)
+                for i in range(10):
+                    b = Ball(Vec2(*self.mp.get()), 5, layer=2)
                     b.pos.y -= b.radius + 10
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
                     self.objects.append(b)
@@ -141,14 +110,18 @@ class Game:
 
     def update_objects(self):
         self.collisions.clear()
-        self.grid.clear()
 
-        self.grid.add_objects_to_grid(self.objects, self.static_objects)
+        def should_ignore_collision(a: Object, b: Object):
+            """ Checks whether both are static OR on different layers and neither are static """
+            return (a.static and b.static) or ((a.layer != b.layer) and not (a.static or b.static))
 
-        def init_collisions(current_cell, other_cell):
-            for a in current_cell:
-                for b in other_cell:
-                    if (a.static and b.static) or (a == b):  # ignore if both static
+        def init_collisions(objs, objs_b=None, identical_lists=True):
+            objs_b = objs if objs_b is None else objs_b
+            for ia, a in enumerate(objs):
+                start = ia + 1 if identical_lists else 0  # avoid checking self if lists are identical
+
+                for ib, b in enumerate(objs_b[start:]):
+                    if should_ignore_collision(a, b):
                         continue
 
                     ch = Manifold(a, b)
@@ -157,60 +130,7 @@ class Game:
                     if ch.collision_count > 0:
                         self.collisions.append(ch)
 
-        def threaded_collision_check(from_inx, to_inx):
-            checked_pairs: list[set] = []
-            for cell_num, cell in self.grid.cells.items():
-                if from_inx <= cell_num < to_inx:
-                    h = self.grid.height
-                    top_left_cell = (cell_num - 1) - h
-                    for row in range(top_left_cell, top_left_cell + (h * 3), h):
-                        for column_i in range(0, 3):
-                            checking_cell = row + column_i
-                            pair = {cell_num, checking_cell}
-                            if checking_cell in self.grid.cells and pair not in checked_pairs:
-                                init_collisions(cell, self.grid.cells[checking_cell])
-                                checked_pairs.append(pair)
-
-        gs = self.grid.size
-        thread_num = 5
-        threads = []
-        for th_i in range(thread_num):
-            rnge = math.floor(gs / thread_num)
-            args = [th_i * rnge, (th_i * rnge) + rnge]
-            print(th_i, args)
-            th = threading.Thread(target=threaded_collision_check, args=args)
-            threads.append(th)
-        for thr in threads:
-            thr.start()
-        for thr in threads:
-            thr.join()
-
-        # init collisions
-        # checked_pairs: list[set] = []
-        # for cell_num, cell in self.grid.cells.items():
-        #     h = self.grid.height
-        #     top_left_cell = (cell_num - 1) - h
-        #     for row in range(top_left_cell, top_left_cell + (h * 3), h):
-        #         for column_i in range(0, 3):
-        #             checking_cell = row + column_i
-        #             pair = {cell_num, checking_cell}
-        #             if checking_cell in self.grid.cells and pair not in checked_pairs:
-        #                 init_collisions(cell, self.grid.cells[checking_cell])
-        #                 checked_pairs.append(pair)
-
-        # objs = self.get_all_objects()
-        # for i, a in enumerate(objs):
-        #     start = i + 1
-        #
-        #     for b in objs[start:]:
-        #         if a.static and b.static:  # ignore if both static
-        #             continue
-        #
-        #         ch = Manifold(a, b)
-        #         ch.init_collision()
-        #
-        #         if ch.collision_count > 0:
-        #             self.collisions.append(ch)
+        init_collisions(self.get_all_objects())
 
         # apply left-over velocity
         for obj in self.objects:
@@ -230,11 +150,11 @@ class Game:
             coll.positional_correction()
 
         # conclusion
-        for i, obj in enumerate(self.objects):
+        for ia, obj in enumerate(self.objects):
             obj.force.set(0, 0)
 
             if obj.is_out_of_bounds():
-                del self.objects[i]
+                del self.objects[ia]
                 print(len(self.objects))
 
     def update_particles(self):
@@ -245,7 +165,6 @@ class Game:
             part.update(Values.DT)
 
     def update(self):
-        # mouse object
         holding_object(self.o1, self.mp)
 
         self.water.update()
