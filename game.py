@@ -31,6 +31,47 @@ def holding_object(obj: Object, mp: Vec2):
     obj.apply_force(force * (obj.inv_mass * 100))
 
 
+class Group:
+    def __init__(self):
+        self.layer_nums = {}  # amount of objects with layer x
+        self.objects = []  # ordered by layers, low - high
+
+    def add(self, o: Object):
+        """ Add new layer to dict, insert object at end of objects' layer in list """
+        if o.layer not in self.layer_nums:
+            self.layer_nums[o.layer] = 0
+
+        inx = 0
+        for layer, amnt in self.layer_nums.items():
+            if layer <= o.layer:
+                inx += amnt
+
+        self.objects.insert(inx, o)
+        self.layer_nums[o.layer] += 1
+
+    def add_mul(self, lis: list[Object]):
+        for o in lis:
+            self.add(o)
+
+    def remove_at_index(self, inx, o=None):
+        """ Fast method of removal """
+        o: Object = o if o is not None else self.objects[inx]
+        self.layer_nums[o.layer] -= 1
+
+        if self.layer_nums[o.layer] <= 0:
+            self.layer_nums.pop(o.layer)
+
+        del self.objects[inx]
+        return True
+
+    def remove_obj(self, o: Object):
+        """ Slow method of removal. Returns success on deletion """
+        for i, obj in enumerate(self.objects):
+            if obj == o:
+                return self.remove_at_index(i, o=obj)
+        return False
+
+
 class Game:
     def __init__(self):
         self.running = True
@@ -49,7 +90,7 @@ class Game:
         self.o1 = Ball(Vec2(10, 10), 10)
         self.o2 = Ball(Vec2(70, 60))
         self.o3 = Ball(Vec2(170, 10), 10)
-        self.o4 = Ball(Vec2(130, 100), 20, layer=2)
+        self.o4 = Ball(Vec2(130, 100), 20, layer=11)
         self.o5 = Box(Vec2(150, 60), Vec2(10, 10))
         self.o6 = Box(Vec2(132, 60), Vec2(10, 15))
 
@@ -57,8 +98,10 @@ class Game:
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6]
-        self.static_objects = [self.g1, self.g2, self.g3]
+        self.objects_group = Group()
+        self.objects_group.add_mul([self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3])
+        # self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6]
+        # self.static_objects = [self.g1, self.g2, self.g3]
         self.particles: list[Particle] = []
 
         # TESTING STUFF
@@ -70,9 +113,6 @@ class Game:
         pg.draw.rect(self.img, c, pg.Rect(0, (self.img.get_height() / 2) - 5, 10, 10))
         pg.draw.rect(self.img, c, pg.Rect(30, (self.img.get_height() / 2) - 5, 10, 10))
         self.img_rot = 0
-
-    def get_all_objects(self):
-        return self.static_objects + self.objects
 
     def events(self):
         for event in pg.event.get():
@@ -87,12 +127,12 @@ class Game:
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
                 self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
-                for i in range(10):
+                for i in range(1):
                     b = Ball(Vec2(*self.mp.get()), 5, layer=2)
                     b.pos.y -= b.radius + 10
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
-                    self.objects.append(b)
-                    print(len(self.objects))
+                    self.objects_group.add(b)
+                    print(len(self.objects_group.objects))
 
             if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
                 pass
@@ -110,6 +150,7 @@ class Game:
 
     def update_objects(self):
         self.collisions.clear()
+        objects = self.objects_group.objects
 
         def should_ignore_collision(a: Object, b: Object):
             """ Checks whether both are static OR on different layers and neither are static """
@@ -130,10 +171,10 @@ class Game:
                     if ch.collision_count > 0:
                         self.collisions.append(ch)
 
-        init_collisions(self.get_all_objects())
+        init_collisions(objects)
 
         # apply left-over velocity
-        for obj in self.objects:
+        for obj in objects:
             obj.update_velocity(Values.DT)
 
         # resolve collisions, apply impulses
@@ -142,7 +183,7 @@ class Game:
                 coll.resolve_collision()
 
         # apply velocity
-        for obj in self.objects:
+        for obj in objects:
             obj.update(Values.DT)
 
         # correct positions
@@ -150,12 +191,11 @@ class Game:
             coll.positional_correction()
 
         # conclusion
-        for ia, obj in enumerate(self.objects):
+        for i, obj in enumerate(objects):
             obj.force.set(0, 0)
 
             if obj.is_out_of_bounds():
-                del self.objects[ia]
-                print(len(self.objects))
+                self.objects_group.remove_at_index(i)
 
     def update_particles(self):
         for i, part in enumerate(self.particles):
@@ -171,6 +211,7 @@ class Game:
 
         self.update_particles()
         self.update_objects()
+        print(self.objects_group.layer_nums)
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
@@ -182,7 +223,7 @@ class Game:
         for part in self.particles:
             part.render(self.canvas_screen)
 
-        for obj in self.get_all_objects():
+        for obj in self.objects_group.objects:
             obj.render(self.canvas_screen)
 
         for coll in self.collisions:

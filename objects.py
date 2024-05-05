@@ -4,6 +4,11 @@ from constants import *
 from Vec2 import Vec2
 
 
+DEF_STATIC = False
+DEF_MAT = Materials.TESTING
+DEF_LAYER = 10
+
+
 class Material:
     def __init__(self, mat: Materials):
         self.restitution = mat[Materials.REST]
@@ -14,7 +19,7 @@ class Material:
 
 
 class Object:
-    def __init__(self, pos: Vec2, static=False, material=Materials.TESTING, layer=1):
+    def __init__(self, pos: Vec2, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         self._type = 'Object'
         self.pos = pos
         self.static = static
@@ -73,7 +78,7 @@ class Object:
 
 
 class Ball(Object):
-    def __init__(self, pos: Vec2, radius=5, static=False, material=Materials.TESTING, layer=1):
+    def __init__(self, pos: Vec2, radius=5, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._type = 'Ball'
         self.radius = radius
@@ -94,7 +99,7 @@ class Ball(Object):
 
 
 class Box(Object):
-    def __init__(self, pos: Vec2, size: Vec2 = Vec2(6, 6), static=False, material=Materials.TESTING, layer=1):
+    def __init__(self, pos: Vec2, size: Vec2 = Vec2(6, 6), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._type = 'Box'
         self.size = size
