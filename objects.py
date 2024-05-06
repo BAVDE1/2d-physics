@@ -58,6 +58,13 @@ class Object:
         if self.static:
             self.velocity.set(0, 0)
 
+    def should_ignore_collision(self, b):
+        """ Checks whether both are static OR on different layers and neither are static """
+        both_static = self.static and b.static
+        one_static = self.static or b.static
+        not_on_layer = self.layer != b.layer
+        return both_static or (not_on_layer and not one_static)
+
     def update_velocity(self, dt):
         """ Should be called twice - before updating pos and after - for each physics calculation """
         if not self.static:
@@ -74,7 +81,7 @@ class Object:
         self.update_velocity(dt)
 
     def __repr__(self):
-        return f'{self._type}({self.pos})'
+        return f'{self._type}({self.layer})'
 
 
 class Ball(Object):

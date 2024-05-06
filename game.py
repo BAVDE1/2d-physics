@@ -32,21 +32,22 @@ def holding_object(obj: Object, mp: Vec2):
 
 
 class Group:
-    def __init__(self):
+    """ Group to store objects of different layers in order of lowest to highest. Optimised for retrieval of objects. """
+    def __init__(self, add_objects=None):
         self.layer_nums = {}  # amount of objects with layer x
         self.objects = []  # ordered by layers, low - high
 
+        if add_objects is not None:
+            self.add_mul(add_objects)
+
     def add(self, o: Object):
-        """ Add new layer to dict, insert object at end of objects' layer in list """
+        """ Add new layer to dict (if needed), insert object at end of objects' layer in list """
         if o.layer not in self.layer_nums:
             self.layer_nums[o.layer] = 0
 
-        inx = 0
-        for layer, amnt in self.layer_nums.items():
-            if layer <= o.layer:
-                inx += amnt
+        index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= o.layer)  # index points to end of layer section in list
 
-        self.objects.insert(inx, o)
+        self.objects.insert(index, o)
         self.layer_nums[o.layer] += 1
 
     def add_mul(self, lis: list[Object]):
@@ -54,22 +55,25 @@ class Group:
             self.add(o)
 
     def remove_at_index(self, inx, o=None):
-        """ Fast method of removal """
-        o: Object = o if o is not None else self.objects[inx]
-        self.layer_nums[o.layer] -= 1
+        """ Fast method of removal. Returns successful deletion """
+        if inx < len(self.objects):
+            o: Object = o if o is not None else self.objects[inx]
+            self.layer_nums[o.layer] -= 1
 
-        if self.layer_nums[o.layer] <= 0:
-            self.layer_nums.pop(o.layer)
+            if self.layer_nums[o.layer] <= 0:
+                self.layer_nums.pop(o.layer)
 
-        del self.objects[inx]
-        return True
+            del self.objects[inx]
+            return True
+        return False
 
     def remove_obj(self, o: Object):
-        """ Slow method of removal. Returns success on deletion """
-        for i, obj in enumerate(self.objects):
-            if obj == o:
-                return self.remove_at_index(i, o=obj)
-        return False
+        """ Slow method of removal. Returns success on location of object, and deletion """
+        try:
+            found = [[i, obj] for i, obj in enumerate(self.objects) if obj == o][0]
+            return self.remove_at_index(*found)
+        except IndexError:
+            return False
 
 
 class Game:
@@ -81,10 +85,6 @@ class Game:
 
         self.canvas_screen = pg.Surface(Vec2(Values.SCREEN_WIDTH, Values.SCREEN_HEIGHT).get())
         self.final_screen = pg.display.get_surface()
-
-        self.water = Water(100, 50, 250)
-
-        self.collisions: list[Manifold] = []
 
         # objects
         self.o1 = Ball(Vec2(10, 10), 10)
@@ -98,11 +98,11 @@ class Game:
         self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group()
-        self.objects_group.add_mul([self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3])
-        # self.objects = [self.o1, self.o2, self.o3, self.o4, self.o5, self.o6]
-        # self.static_objects = [self.g1, self.g2, self.g3]
+        self.objects_group = Group([self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3])
         self.particles: list[Particle] = []
+        self.collisions: list[Manifold] = []
+
+        self.water = Water(100, 50, 250)
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -128,11 +128,10 @@ class Game:
                 self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
                 for i in range(1):
-                    b = Ball(Vec2(*self.mp.get()), 5, layer=2)
+                    b = Ball(Vec2(*self.mp.get()), 5, layer=11)
                     b.pos.y -= b.radius + 10
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
                     self.objects_group.add(b)
-                    print(len(self.objects_group.objects))
 
             if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
                 pass
@@ -142,36 +141,31 @@ class Game:
                 self.running = False
 
     def rotate_screen_blit(self, image, angle, pos: Vec2):
+        """ Temporary """
         rotated_image = pg.transform.rotate(image, angle)
         new_rect = rotated_image.get_rect(center=image.get_rect(topleft=pos.get()).center)
         pg.draw.rect(self.canvas_screen, Colours.DARK_GREY, new_rect, 1)
 
         self.canvas_screen.blit(rotated_image, new_rect)
 
+    def init_collisions(self, objs: list):
+        """ Iterate over all objects given and check if they're colliding. If so, fill manifold values & add it to collision list """
+        for ia, a in enumerate(objs):
+            for b in objs[ia + 1:]:  # prevent duplicate checks (and self checks)
+                if a.should_ignore_collision(b):
+                    continue
+
+                ch = Manifold(a, b)
+                ch.init_collision()
+
+                if ch.collision_count > 0:
+                    self.collisions.append(ch)
+
     def update_objects(self):
-        self.collisions.clear()
         objects = self.objects_group.objects
 
-        def should_ignore_collision(a: Object, b: Object):
-            """ Checks whether both are static OR on different layers and neither are static """
-            return (a.static and b.static) or ((a.layer != b.layer) and not (a.static or b.static))
-
-        def init_collisions(objs, objs_b=None, identical_lists=True):
-            objs_b = objs if objs_b is None else objs_b
-            for ia, a in enumerate(objs):
-                start = ia + 1 if identical_lists else 0  # avoid checking self if lists are identical
-
-                for ib, b in enumerate(objs_b[start:]):
-                    if should_ignore_collision(a, b):
-                        continue
-
-                    ch = Manifold(a, b)
-                    ch.init_collision()
-
-                    if ch.collision_count > 0:
-                        self.collisions.append(ch)
-
-        init_collisions(objects)
+        self.collisions.clear()
+        self.init_collisions(objects)
 
         # apply left-over velocity
         for obj in objects:
@@ -211,7 +205,6 @@ class Game:
 
         self.update_particles()
         self.update_objects()
-        print(self.objects_group.layer_nums)
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)
