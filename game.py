@@ -87,11 +87,11 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.o1 = Ball(Vec2(10, 10), 10)
+        self.o1 = Box(Vec2(10, 10))
         self.o2 = Ball(Vec2(70, 60))
-        self.o3 = Ball(Vec2(170, 10), 10)
+        self.o3 = Ball(Vec2(170, 30), 10)
         self.o4 = Ball(Vec2(130, 100), 20, layer=11)
-        self.o5 = Box(Vec2(150, 60), Vec2(10, 10))
+        self.o5 = Box(Vec2(150, 60))
         self.o6 = Box(Vec2(132, 60), Vec2(10, 15))
 
         self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)

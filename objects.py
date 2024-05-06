@@ -42,8 +42,9 @@ class Object:
 
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
         """ Apply given impulse to self (multiplied by inv_mass) """
-        if not self.static:
-            self.velocity.add_self(impulse, self.inv_mass)
+        if False:
+            if not self.static:
+                self.velocity.add_self(impulse, self.inv_mass)
 
     def is_out_of_bounds(self, check_top=False):
         """ Is object too far from screen bounds to be considered worth keeping alive """
@@ -106,7 +107,7 @@ class Ball(Object):
 
 
 class Box(Object):
-    def __init__(self, pos: Vec2, size: Vec2 = Vec2(6, 6), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
+    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._type = 'Box'
         self.size = size

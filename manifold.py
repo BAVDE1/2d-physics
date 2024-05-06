@@ -73,7 +73,7 @@ class Manifold:
             cp = self.contact_points[ci]
             if cp != Vec2(0, 0):
                 rec_a = pg.Rect(cp.get(), (1, 1))
-                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 3).get())
+                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 3).get())  # 3 pixel long line
                 pg.draw.rect(screen, Colours.RED, rec_a)
 
     def __repr__(self):
@@ -93,7 +93,7 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
         return False
 
     dist = normal.length()
-    m.collision_count += 1
+    m.collision_count = 1
 
     if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
@@ -139,11 +139,12 @@ def box_colliding_ball(m: Manifold, a: Box, b: Ball):
         return False
 
     dist = normal.length()
-    m.collision_count += 1
+    m.collision_count = 1
 
     normal /= dist  # normalise
     m.normal = -normal if inside else normal  # flip the collision if inside
     m.penetration = r - dist
+    m.contact_points[0].set_vec(b.pos - (m.normal * b.radius))
     return True
 
 
@@ -163,16 +164,23 @@ def box_colliding_box(m: Manifold, a: Box, b: Box):
         y_overlap = a_size_h.y + b_size_h.y - abs(normal.y)
 
         if y_overlap > 0:
-            m.collision_count += 1
+            cp = 0
+            cp += 2
 
             # use axis of the least penetration
             if x_overlap < y_overlap:  # push x
                 x_normal = int(normal.x > 0) * 2 - 1
                 m.normal = Vec2(x_normal, 0)
                 m.penetration = x_overlap
+
+                m.contact_points[0].set_vec((a.pos - b.pos) - normal)
             else:  # push y
                 y_normal = int(normal.y > 0) * 2 - 1
                 m.normal = Vec2(0, y_normal)
                 m.penetration = y_overlap
+
+                m.contact_points[0].set_vec((a.pos - b.pos) - normal)
+            # m.contact_points[0].set_vec(a.pos + y_overlap)
+            m.collision_count = cp
             return True
     return False

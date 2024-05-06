@@ -41,6 +41,12 @@ class Vec2:
         self.x = x if x is not None else self.x
         self.y = y if y is not None else self.y
 
+    def set_vec(self, vec):
+        """ Set either x and/or y of this vector (in place) """
+        if isinstance(vec, Vec2):
+            self.x = vec.x
+            self.y = vec.y
+
     def add_self(self, vec, val: float):
         """ Multiply vec by val and add it to instance (in place) """
         if isinstance(vec, Vec2):
