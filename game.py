@@ -1,13 +1,10 @@
-import math
 import random
-import threading
 
 from constants import *
-import time
 
 from manifold import Manifold
 from water import Water
-from objects import Object, Ball, Box
+from objects import Object, Circle, Square
 from Vec2 import Vec2
 from particle import Particle
 
@@ -19,7 +16,7 @@ def get_mp():
 
 def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
-    if isinstance(obj, Box):
+    if isinstance(obj, Square):
         mp -= obj.size / 2  # middle of box
 
     max_f = Vec2(40, 40)
@@ -34,46 +31,53 @@ def holding_object(obj: Object, mp: Vec2):
 class Group:
     """ Group to store objects of different layers in order of lowest to highest. Optimised for retrieval of objects. """
     def __init__(self, add_objects=None):
-        self.layer_nums = {}  # amount of objects with layer x
+        self.layer_nums = {}  # amount of stored objects with layer x
         self.objects = []  # ordered by layers, low - high
 
         if add_objects is not None:
             self.add_mul(add_objects)
 
-    def add(self, o: Object):
+    def add(self, obj):
         """ Add new layer to dict (if needed), insert object at end of objects' layer in list """
-        if o.layer not in self.layer_nums:
-            self.layer_nums[o.layer] = 0
+        if obj.layer not in self.layer_nums:
+            self.layer_nums[obj.layer] = 0
 
-        index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= o.layer)  # index points to end of layer section in list
+        index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= obj.layer)  # index points to end of layer section in list
 
-        self.objects.insert(index, o)
-        self.layer_nums[o.layer] += 1
+        self.objects.insert(index, obj)
+        self.layer_nums[obj.layer] += 1
 
-    def add_mul(self, lis: list[Object]):
-        for o in lis:
-            self.add(o)
+    def add_mul(self, lis: list):
+        for obj in lis:
+            self.add(obj)
 
-    def remove_at_index(self, inx, o=None):
+    def remove_at_index(self, inx, obj=None):
         """ Fast method of removal. Returns successful deletion """
         if inx < len(self.objects):
-            o: Object = o if o is not None else self.objects[inx]
-            self.layer_nums[o.layer] -= 1
+            obj = obj if obj is not None else self.objects[inx]
+            self.layer_nums[obj.layer] -= 1
 
-            if self.layer_nums[o.layer] <= 0:
-                self.layer_nums.pop(o.layer)
+            if self.layer_nums[obj.layer] <= 0:
+                self.layer_nums.pop(obj.layer)
 
             del self.objects[inx]
             return True
         return False
 
-    def remove_obj(self, o: Object):
-        """ Slow method of removal. Returns success on location of object, and deletion """
+    def remove_obj(self, o):
+        """ Slow method of removal. Returns success on location, and deletion of object """
         try:
             found = [[i, obj] for i, obj in enumerate(self.objects) if obj == o][0]
             return self.remove_at_index(*found)
         except IndexError:
             return False
+
+    def render_all(self, screen: pg.Surface):
+        for obj in self.objects:
+            obj.render(screen)
+
+    def __repr__(self):
+        return f'Group({len(self.objects)} objects, {len(self.layer_nums.keys())} layer/s)'
 
 
 class Game:
@@ -87,19 +91,19 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.o1 = Box(Vec2(10, 10))
-        self.o2 = Ball(Vec2(70, 60))
-        self.o3 = Ball(Vec2(170, 30), 10)
-        self.o4 = Ball(Vec2(130, 100), 20, layer=11)
-        self.o5 = Box(Vec2(150, 60))
-        self.o6 = Box(Vec2(132, 60), Vec2(10, 15))
+        self.o1 = Square(Vec2(10, 10))
+        self.o2 = Circle(Vec2(70, 60))
+        self.o3 = Circle(Vec2(170, 30), 10)
+        self.o4 = Circle(Vec2(130, 100), 20, layer=5)
+        self.o5 = Square(Vec2(150, 60))
+        self.o6 = Square(Vec2(132, 60), Vec2(10, 15))
 
-        self.g1 = Box(Vec2(50, 160), size=Vec2(200, 10), static=True)
-        self.g2 = Box(Vec2(50, 75), size=Vec2(10, 100), static=True)
-        self.g3 = Box(Vec2(250, 75), size=Vec2(10, 100), static=True)
+        self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
+        self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)
+        self.g3 = Square(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
         self.objects_group = Group([self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3])
-        self.particles: list[Particle] = []
+        self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
         self.water = Water(100, 50, 250)
@@ -125,10 +129,10 @@ class Game:
 
             # mouse
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-                self.particles.append(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
+                self.particles_group.add(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
                 for i in range(1):
-                    b = Ball(Vec2(*self.mp.get()), 5, layer=11)
+                    b = Circle(Vec2(*self.mp.get()), 5, layer=5)
                     b.pos.y -= b.radius + 10
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
                     self.objects_group.add(b)
@@ -189,13 +193,12 @@ class Game:
             obj.force.set(0, 0)
 
             if obj.is_out_of_bounds():
-                self.objects_group.remove_at_index(i)
+                self.objects_group.remove_at_index(i, obj)
 
     def update_particles(self):
-        for i, part in enumerate(self.particles):
+        for i, part in enumerate(self.particles_group.objects):
             if part.should_del():
-                del self.particles[i]
-                continue
+                self.particles_group.remove_at_index(i, part)
             part.update(Values.DT)
 
     def update(self):
@@ -213,11 +216,8 @@ class Game:
         # render here
         self.water.render(self.canvas_screen)
 
-        for part in self.particles:
-            part.render(self.canvas_screen)
-
-        for obj in self.objects_group.objects:
-            obj.render(self.canvas_screen)
+        self.particles_group.render_all(self.canvas_screen)
+        self.objects_group.render_all(self.canvas_screen)
 
         for coll in self.collisions:
             coll.render(self.canvas_screen)

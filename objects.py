@@ -42,9 +42,8 @@ class Object:
 
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
         """ Apply given impulse to self (multiplied by inv_mass) """
-        if False:
-            if not self.static:
-                self.velocity.add_self(impulse, self.inv_mass)
+        if not self.static:
+            self.velocity.add_self(impulse, self.inv_mass)
 
     def is_out_of_bounds(self, check_top=False):
         """ Is object too far from screen bounds to be considered worth keeping alive """
@@ -80,12 +79,13 @@ class Object:
         self.pos += self.velocity * dt
 
         self.update_velocity(dt)
+        self.static_correction()
 
     def __repr__(self):
-        return f'{self._type}({self.layer})'
+        return f'{self._type}(layer: {self.layer})'
 
 
-class Ball(Object):
+class Circle(Object):
     def __init__(self, pos: Vec2, radius=5, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._type = 'Ball'
@@ -106,7 +106,7 @@ class Ball(Object):
         pg.draw.circle(screen, self.colour, self.pos.get(), self.radius, 2)
 
 
-class Box(Object):
+class Square(Object):
     def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._type = 'Box'

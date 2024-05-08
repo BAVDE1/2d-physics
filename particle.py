@@ -6,10 +6,11 @@ from Vec2 import Vec2
 
 class Particle:
     def __init__(self, pos: Vec2,
-                 colour=Colours.WHITE, size=Vec2(1, 1), velocity=Vec2(0, 0),
+                 colour=Colours.WHITE, layer=10, size=Vec2(1, 1), velocity=Vec2(0, 0),
                  lifetime=1):
         self.pos = pos
         self.size = size
+        self.layer = layer
 
         self.colour = colour
         self.lifetime = lifetime
@@ -40,4 +41,4 @@ class Particle:
         pg.draw.rect(screen, self.colour, self.rect)
 
     def __repr__(self):
-        return f'Particle({self.pos})'
+        return f'Particle(layer: {self.layer})'

@@ -1,6 +1,6 @@
 from constants import *
 from Vec2 import Vec2
-from objects import Object, Box, Ball
+from objects import Object, Square, Circle
 
 
 class Manifold:
@@ -18,8 +18,8 @@ class Manifold:
         """
         Fills necessary values of this class (normal, pen, contact points) depending upon the types of Objects that are colliding
         """
-        a = int(isinstance(self.a, Ball))
-        b = int(isinstance(self.b, Ball))
+        a = int(isinstance(self.a, Circle))
+        b = int(isinstance(self.b, Circle))
         functions = [
             [box_colliding_box, box_colliding_ball],
             [ball_colliding_box, ball_colliding_ball]
@@ -73,7 +73,7 @@ class Manifold:
             cp = self.contact_points[ci]
             if cp != Vec2(0, 0):
                 rec_a = pg.Rect(cp.get(), (1, 1))
-                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 3).get())  # 3 pixel long line
+                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 2).get())  # 2 pixel long line
                 pg.draw.rect(screen, Colours.RED, rec_a)
 
     def __repr__(self):
@@ -84,7 +84,7 @@ def clamp(value, min_v, max_v):
     return max(min_v, min(max_v, value))
 
 
-def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
+def ball_colliding_ball(m: Manifold, a: Circle, b: Circle):
     normal = b.pos - a.pos
     r = a.radius + b.radius
 
@@ -109,7 +109,7 @@ def ball_colliding_ball(m: Manifold, a: Ball, b: Ball):
     return True
 
 
-def box_colliding_ball(m: Manifold, a: Box, b: Ball):
+def box_colliding_ball(m: Manifold, a: Square, b: Circle):
     inside = False
     b_size_h = a.size / 2
     x_extent, y_extent = b_size_h.x, b_size_h.y
@@ -148,13 +148,13 @@ def box_colliding_ball(m: Manifold, a: Box, b: Ball):
     return True
 
 
-def ball_colliding_box(m: Manifold, a: Ball, b: Box):
+def ball_colliding_box(m: Manifold, a: Circle, b: Square):
     val = box_colliding_ball(m, b, a)
     m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
     return val
 
 
-def box_colliding_box(m: Manifold, a: Box, b: Box):
+def box_colliding_box(m: Manifold, a: Square, b: Square):
     a_size_h, b_size_h = a.size / 2, b.size / 2
 
     normal = (b.pos - a_size_h) - (a.pos - b_size_h)  # allows for different size boxes
