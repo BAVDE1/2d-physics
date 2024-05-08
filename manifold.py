@@ -42,13 +42,15 @@ class Manifold:
         if contact_vel > 0:  # separating, do not collide
             return
 
+        inv_masses = self.a.inv_mass + self.b.inv_mass
+
         is_resting = rv.y ** 2 < Values.RESTING
         e = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
         e = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
 
         rebound_dir = -(e + 1)
         j_scalar = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
-        j_scalar /= self.a.inv_mass + self.b.inv_mass
+        j_scalar /= inv_masses
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
         j_scalar += (self.a.mass + self.b.mass) * self.penetration
@@ -60,6 +62,11 @@ class Manifold:
         self.b.apply_impulse(j, rb)
 
         # FRICTION IMPULSE
+        tangent: Vec2 = rv - rv.dot(self.normal) * self.normal
+        tangent.normalise_self()
+
+        j_tangent = -rv.dot(tangent)  # opposite direction
+        j_tangent /= inv_masses
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
