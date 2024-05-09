@@ -1,33 +1,33 @@
 import math
+from typing import Self
 
 
 class Vec2:
-    def __init__(self, x=0, y=0):
-        self.x: int = x
-        self.y: int = y
+    def __init__(self, x=0.0, y=0.0):
+        self.x: float = x
+        self.y: float = y
 
-    def length(self):
+    def length(self) -> float:
         """ Magnitude (using sqrt) """
         return math.sqrt(self.length_sq())
 
-    def length_sq(self):
+    def length_sq(self) -> float:
         """ Length squared """
         return self.x ** 2 + self.y ** 2
 
     def normalise_self(self):
-        """ This vector but with a length of 1 """
+        """ This vector with a length of 1 (in place) """
         length_sq = self.length_sq()
         if length_sq > 0.0001 ** 2:
             inv_len = 1 / math.sqrt(length_sq)
             self.x *= inv_len
             self.y *= inv_len
-        return self
 
-    def dot(self, vec):
+    def dot(self, vec) -> float:
         """ Dot product of this and vec """
         return self.x * vec.x + self.y * vec.y
 
-    def get(self):
+    def get(self) -> tuple:
         """ Tuple representation of Vec2 """
         return self.x, self.y
 
@@ -57,7 +57,7 @@ class Vec2:
             self.x += vec.x * val
             self.y += vec.y * val
 
-    def negate(self):
+    def negate(self) -> Self:
         """ Return new vector as a negative of self """
         return Vec2(-self.x, -self.y)
 
@@ -65,6 +65,12 @@ class Vec2:
         """ Negate own x and y (in place) """
         self.x = -self.x
         self.y = -self.y
+
+    def cross_vec(self, other) -> float:
+        """ Cross product of self and vector (returns a scalar) """
+        if isinstance(other, Vec2):
+            return self.x * other.y - self.y * other.x
+        raise TypeError('param (1) "other" is not of type "Vec2", cannot perform cross')
 
     def __add__(self, other):
         if isinstance(other, Vec2):
@@ -94,3 +100,17 @@ class Vec2:
 
     def __repr__(self):
         return f'Vec2({self.x}, {self.y})'
+
+
+def cross_vec_float(v: Vec2, f: float) -> Vec2:
+    """ Cross of Vec2 and float """
+    if isinstance(v, Vec2) and isinstance(f, float):
+        return Vec2(f * v.y, -f * v.x)
+    raise TypeError('Parameter/s given are of an incorrect type')
+
+
+def cross_float_vec(f: float, v: Vec2) -> Vec2:
+    """ Cross of float and Vec2 """
+    if isinstance(v, Vec2) and isinstance(f, float):
+        return Vec2(-f * v.y, f * v.x)
+    raise TypeError('Parameter/s given are of an incorrect type')

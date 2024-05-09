@@ -98,6 +98,8 @@ class Game:
         self.o5 = Square(Vec2(150, 60))
         self.o6 = Square(Vec2(155, 80), Vec2(10, 15))
 
+        self.o4.velocity.set(50, -55)
+
         self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)
         self.g3 = Square(Vec2(250, 75), size=Vec2(10, 100), static=True)
@@ -132,7 +134,7 @@ class Game:
                 self.particles_group.add(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
                 for i in range(1):
-                    b = Circle(Vec2(*self.mp.get()), 5, layer=5)
+                    b = Circle(Vec2(*self.mp.get()), 5)
                     b.pos.y -= b.radius + 10
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
                     self.objects_group.add(b)
