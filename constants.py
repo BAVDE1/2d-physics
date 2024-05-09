@@ -1,5 +1,5 @@
 import pygame as pg
-from Vec2 import Vec2
+from Vec2 import Vec2, EPSILON
 
 
 class Forces:
@@ -7,7 +7,7 @@ class Forces:
     POSITIONAL_CORRECTION = 0.2  # 20% - 80%
     INF_MASS = 0
     GRAVITY = Vec2(0, 100)  # 100
-    AIR_VELOCITY = Vec2(0, 0)  # for wind or something
+    AIR_VELOCITY = Vec2()  # for wind or something
 
 
 class Materials:
@@ -24,7 +24,7 @@ class Values:
 
     FPS = 60
     DT = 1 / FPS
-    RESTING = (Forces.GRAVITY * DT).length_sq() + 0.0001  # epsilon?
+    RESTING = (Forces.GRAVITY * DT).length_sq() + EPSILON
 
     SCREEN_WIDTH = 300
     SCREEN_HEIGHT = 200

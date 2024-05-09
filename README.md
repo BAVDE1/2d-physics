@@ -21,3 +21,5 @@ better dt usage: https://web.archive.org/web/20161201054257/https://www.niksula.
 ---
 
 https://github.com/viblo/pymunk/tree/master
+
+very cool: https://www.oocities.org/SiliconValley/2151/win95gpe.html

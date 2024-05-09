@@ -91,7 +91,7 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.o1 = Square(Vec2(10, 10))
+        self.o1 = Circle(Vec2(10, 10), 7)
         self.o2 = Circle(Vec2(60, 60))
         self.o3 = Circle(Vec2(180, 30), 10)
         self.o4 = Circle(Vec2(120, 100), 20)
@@ -131,7 +131,8 @@ class Game:
 
             # mouse
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-                self.particles_group.add(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
+                for _ in range(4):
+                    self.particles_group.add(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
 
                 for i in range(1):
                     b = Circle(Vec2(*self.mp.get()), 5)

@@ -23,20 +23,29 @@ class Object:
         self._type = 'Object'
         self.pos = pos
         self.static = static
-        self.colour = Colours.WHITE
         self.layer = layer
 
-        self.velocity = Vec2(0, 0)
-        self.force = Vec2(0, 0)
-        self.static_friction = 0.5  # at rest
-        self.dynamic_friction = 0.3  # already moving
+        # texture
+        self.colour = Colours.WHITE
+        self._outline_size = 2
 
+        # linear properties
+        self.velocity: Vec2 = Vec2()
+        self.force: Vec2 = Vec2()
+        self.static_friction: float = 0.5  # at rest
+        self.dynamic_friction: float = 0.3  # already moving
+
+        # angular properties
+        self.orientation: float = 0  # in radians
+        self.angular_velocity: Vec2 = Vec2()
+        self.torque: float = 0
+
+        # mass
         self.material = Material(material)
         self.mass = 0
         self.inv_mass = 0
-
-        # texture
-        self._outline_size = 2
+        self.inertia = 0
+        self.inv_inertia = 0
 
     def apply_force(self, force: Vec2):
         """ Apply external force to object """
@@ -104,6 +113,9 @@ class Circle(Object):
         self.mass = Forces.INF_MASS if self.static else mass
         self.inv_mass = 0 if self.static else 1 / self.mass
 
+        self.inertia = self.mass * self.radius * self.radius
+        self.inv_inertia = 0 if self.static else 1 / self.inertia
+
     def render(self, screen: pg.Surface):
         ps = 1  # half of line size
         pg.draw.line(screen, self.colour,
@@ -132,3 +144,8 @@ class Square(Object):
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, self.colour, self.pos.get(), (self.lower_pos - 1).get())
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)
+
+
+class Polygon:
+    def __init__(self):
+        pass

@@ -1,6 +1,9 @@
 import math
 from typing import Self
 
+EPSILON = 0.0001
+EPSILON_SQ = EPSILON ** 2
+
 
 class Vec2:
     def __init__(self, x=0.0, y=0.0):
@@ -18,7 +21,7 @@ class Vec2:
     def normalise_self(self):
         """ This vector with a length of 1 (in place) """
         length_sq = self.length_sq()
-        if length_sq > 0.0001 ** 2:
+        if length_sq > EPSILON_SQ:
             inv_len = 1 / math.sqrt(length_sq)
             self.x *= inv_len
             self.y *= inv_len
@@ -51,7 +54,7 @@ class Vec2:
             self.x = vec.x
             self.y = vec.y
 
-    def add_self(self, vec, val: float):
+    def add_self(self, vec: Self, val: float):
         """ Multiply vec by val and add it to instance (in place) """
         if isinstance(vec, Vec2):
             self.x += vec.x * val

@@ -16,19 +16,20 @@ class Manifold:
         self.collision_count = 0
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
+        self.jump_table = [
+            [box_colliding_box, box_colliding_ball],
+            [ball_colliding_box, ball_colliding_ball]
+        ]
+
     def init_collision(self):
         """
         Fills necessary values of this class (normal, pen, contact points) depending upon the types of Objects that are colliding
         """
         a = int(isinstance(self.a, Circle))
         b = int(isinstance(self.b, Circle))
-        functions = [
-            [box_colliding_box, box_colliding_ball],
-            [ball_colliding_box, ball_colliding_ball]
-        ]
 
         # execute collision function
-        functions[a][b](self, self.a, self.b)
+        self.jump_table[a][b](self, self.a, self.b)
 
     def resolve_collision(self):
         """ Apply impulse on colliding objects to solve collisions """

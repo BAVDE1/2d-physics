@@ -29,7 +29,7 @@ class Particle:
 
     def update_velocity(self, dt):
         dt_h = dt * 0.5
-        self.velocity.add_self(Forces.GRAVITY, dt_h)
+        self.velocity.add_self(Forces.GRAVITY * 2, dt_h)
         self.velocity.add_self(Forces.AIR_VELOCITY, dt_h)
 
     def update(self, dt):
