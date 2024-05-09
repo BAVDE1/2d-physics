@@ -14,16 +14,13 @@ class Vec2:
         """ Length squared """
         return self.x ** 2 + self.y ** 2
 
-    def normalised(self):
-        """ This vector but with a length of 1 """
-        length = self.length()
-        return Vec2(self.x / length, self.y / length)
-
     def normalise_self(self):
         """ This vector but with a length of 1 """
-        length = self.length()
-        self.x /= length
-        self.y /= length
+        length_sq = self.length_sq()
+        if length_sq > 0.0001 ** 2:
+            inv_len = 1 / math.sqrt(length_sq)
+            self.x *= inv_len
+            self.y *= inv_len
         return self
 
     def dot(self, vec):
@@ -59,6 +56,10 @@ class Vec2:
         if isinstance(vec, Vec2):
             self.x += vec.x * val
             self.y += vec.y * val
+
+    def negate(self):
+        """ Return new vector as a negative of self """
+        return Vec2(-self.x, -self.y)
 
     def negate_self(self):
         """ Negate own x and y (in place) """

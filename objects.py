@@ -28,6 +28,8 @@ class Object:
 
         self.velocity = Vec2(0, 0)
         self.force = Vec2(0, 0)
+        self.static_friction = 0.5  # at rest
+        self.dynamic_friction = 0.3  # already moving
 
         self.material = Material(material)
         self.mass = 0
@@ -90,6 +92,10 @@ class Circle(Object):
         super().__init__(pos, static, material, layer)
         self._type = 'Ball'
         self.radius = radius
+
+        # lowered friction
+        self.static_friction = 0.1
+        self.dynamic_friction = 0.05
 
         self.compute_mass()
 

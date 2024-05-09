@@ -92,11 +92,11 @@ class Game:
 
         # objects
         self.o1 = Square(Vec2(10, 10))
-        self.o2 = Circle(Vec2(70, 60))
-        self.o3 = Circle(Vec2(170, 30), 10)
-        self.o4 = Circle(Vec2(130, 100), 20, layer=5)
+        self.o2 = Circle(Vec2(60, 60))
+        self.o3 = Circle(Vec2(180, 30), 10)
+        self.o4 = Circle(Vec2(120, 100), 20)
         self.o5 = Square(Vec2(150, 60))
-        self.o6 = Square(Vec2(132, 60), Vec2(10, 15))
+        self.o6 = Square(Vec2(155, 80), Vec2(10, 15))
 
         self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
         self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)

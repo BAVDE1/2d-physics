@@ -1,3 +1,5 @@
+import math
+
 from constants import *
 from Vec2 import Vec2
 from objects import Object, Square, Circle
@@ -44,29 +46,44 @@ class Manifold:
 
         inv_masses = self.a.inv_mass + self.b.inv_mass
 
+        e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
         is_resting = rv.y ** 2 < Values.RESTING
-        e = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
-        e = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
+        e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
 
-        rebound_dir = -(e + 1)
-        j_scalar = Vec2(rebound_dir.x, rebound_dir.y) * contact_vel
-        j_scalar /= inv_masses
+        j: float = -(e + 1) * contact_vel
+        j /= inv_masses
+        rebound_dir_vec: Vec2 = -(e_vec + 1)
+        j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
+        j_vec /= inv_masses
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
-        j_scalar += (self.a.mass + self.b.mass) * self.penetration
-
-        j = j_scalar * self.normal  # impulse
+        j_vec += (self.a.mass + self.b.mass) * self.penetration
 
         # normal application of impulse (backward cause pygame)
-        self.a.apply_impulse(-j, ra)
-        self.b.apply_impulse(j, rb)
+        impulse: Vec2 = j_vec * self.normal
+        self.a.apply_impulse(impulse.negate(), ra)
+        self.b.apply_impulse(impulse, rb)
 
         # FRICTION IMPULSE
-        tangent: Vec2 = rv - rv.dot(self.normal) * self.normal
-        tangent.normalise_self()
+        t: Vec2 = rv  # tangent
+        t += self.normal * -rv.dot(self.normal)
+        t.normalise_self()
 
-        j_tangent = -rv.dot(tangent)  # opposite direction
-        j_tangent /= inv_masses
+        jt: float = -rv.dot(t)  # impulse tangent
+        jt /= inv_masses
+
+        if jt != 0:
+            sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
+
+            # Coulumb's law
+            if abs(jt) < j * sf:  # assumed at rest
+                t_impulse = t * jt
+            else:  # already moving (energy of activation broken, less friction required)
+                df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
+                t_impulse = (t * j) * -df
+
+            self.a.apply_impulse(t_impulse.negate(), ra)
+            self.b.apply_impulse(t_impulse, rb)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
