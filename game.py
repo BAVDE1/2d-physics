@@ -131,12 +131,14 @@ class Game:
 
             # mouse
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
-                for _ in range(4):
-                    self.particles_group.add(Particle(self.mp, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50))))
+                r = 5
+                p = Vec2(*self.mp.get())
+                p.y -= r + 10
+                for _ in range(5):
+                    self.particles_group.add(Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)), colour=[random.randrange(0, 255) for _ in range(3)]))
 
                 for i in range(1):
-                    b = Circle(Vec2(*self.mp.get()), 5)
-                    b.pos.y -= b.radius + 10
+                    b = Circle(p, r)
                     b.colour = [random.randrange(0, 255) for _ in range(3)]
                     self.objects_group.add(b)
 
