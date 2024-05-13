@@ -136,7 +136,7 @@ class Game:
                 p.y -= r + 10
                 for _ in range(8):
                     self.particles_group.add(
-                        Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)), colour=[random.randrange(0, 255) for _ in range(3)])
+                        Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)), colour=[random.randrange(0, 255) for _ in range(3)], lifetime=random.random() + 0.4)
                     )
 
                 for i in range(1):
