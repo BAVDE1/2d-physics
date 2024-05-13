@@ -11,8 +11,8 @@ DEF_LAYER = 10
 
 class Material:
     def __init__(self, mat: Materials):
-        self.restitution = mat[Materials.REST]
-        self.density = mat[Materials.DENS]
+        self.restitution: float = mat[Materials.REST]
+        self.density: float = mat[Materials.DENS]
 
     def __repr__(self):
         return f'Material(rest: {self.restitution}, dens: {self.density})'
@@ -21,6 +21,7 @@ class Material:
 class Object:
     def __init__(self, pos: Vec2, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         self._type = 'Object'
+        self._og_pos = pos.clone()
         self.pos = pos
         self.static = static
         self.layer = layer
@@ -146,6 +147,71 @@ class Square(Object):
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)
 
 
-class Polygon:
-    def __init__(self):
-        pass
+class Polygon(Object):
+    MIN_VERTEX_COUNT = 3
+    MAX_VERTEX_COUNT = 16
+
+    def __init__(self, pos: Vec2, vertices=None, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
+        super().__init__(pos, static, material, layer)
+        self._type = 'Poly'
+        self.vertex_count = 0
+        self.vertices: list[Vec2] = []
+        self.normals: list[Vec2] = []
+
+        if vertices is not None:
+            self.set(vertices)
+
+    def compute_mass(self):
+        """ Add all triangle areas of polygon for mass. Sets position to the centre of mass. """
+        com = Vec2()  # centre of mass
+        area = 0.0
+        inertia = 0.0
+
+        K_INV3: float = 1 / 3
+
+        for i in range(self.vertex_count):
+            p1: Vec2 = self.vertices[i]
+            p2: Vec2 = self.vertices[(i + 1) % self.vertex_count]  # loop back to 0 if exceeding v count
+
+            derivative: float = p1.cross_vec(p2)
+            tri_area = 0.5 * derivative
+
+            area += tri_area
+
+            # Use area to weight the centroid average, not just vertex position
+            weight: float = tri_area * K_INV3
+            com.add_self(p1, weight)
+            com.add_self(p2, weight)
+
+            intx2: float = (p1.x ** 2) + (p2.x * p1.x) + (p2.x ** 2)
+            inty2: float = (p1.y ** 2) + (p2.y * p1.y) + (p2.y ** 2)
+            inertia += (.25 * K_INV3 * derivative) * (intx2 + inty2)
+
+        com *= 1 / area
+        self.pos = self._og_pos + com
+
+        # translate vertices to centroid (centroid 0, 0)
+        for i in range(self.vertex_count):
+            self.vertices[i] -= com
+
+        self.mass = self.material.density * area
+        self.inv_mass = 0 if self.static else 1 / self.mass
+        self.inertia = inertia * self.material.density
+        self.inv_inertia = 0 if self.static else 1 / self.inertia
+
+    def set(self, verts: list[Vec2]):
+        # todo: do more stuff here
+        self.vertices = verts
+        self.vertex_count = len(verts)
+
+        # compute normals for each face
+        for i in range(self.vertex_count):
+            face: Vec2 = self.vertices[(i + 1) % self.vertex_count] - self.vertices[i]
+
+            normal = Vec2(face.y, -face.x)   # calculate normal with 2D cross product between vector and scalar
+            self.normals.append(normal.normalise_self())
+
+        self.compute_mass()
+
+    def render(self, screen: pg.Surface):
+        pg.draw.rect(screen, Colours.RED, pg.Rect(self.pos.get(), (1, 1)))

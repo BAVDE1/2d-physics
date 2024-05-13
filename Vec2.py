@@ -34,6 +34,10 @@ class Vec2:
         """ Tuple representation of Vec2 """
         return self.x, self.y
 
+    def clone(self) -> Self:
+        """ Return a clone of self """
+        return Vec2(self.x, self.y)
+
     def clamp_self(self, min_v, max_v):
         """ Clamp vector between a min vec or int, and a max vec or int (in place) """
         if isinstance(min_v, Vec2) and isinstance(max_v, Vec2):
@@ -69,7 +73,7 @@ class Vec2:
         self.x = -self.x
         self.y = -self.y
 
-    def cross_vec(self, other) -> float:
+    def cross_vec(self, other: Self) -> float:
         """ Cross product of self and vector (returns a scalar) """
         if isinstance(other, Vec2):
             return self.x * other.y - self.y * other.x

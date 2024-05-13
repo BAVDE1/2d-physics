@@ -4,7 +4,7 @@ from constants import *
 
 from manifold import Manifold
 from water import Water
-from objects import Object, Circle, Square
+from objects import Object, Circle, Square, Polygon
 from Vec2 import Vec2
 from particle import Particle
 
@@ -119,6 +119,9 @@ class Game:
         pg.draw.rect(self.img, c, pg.Rect(0, (self.img.get_height() / 2) - 5, 10, 10))
         pg.draw.rect(self.img, c, pg.Rect(30, (self.img.get_height() / 2) - 5, 10, 10))
         self.img_rot = 0
+
+        self.poly = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(10, 0), Vec2(10, 10)])
+        print(self.poly.normals)
 
     def events(self):
         for event in pg.event.get():
@@ -237,6 +240,7 @@ class Game:
         # test renders
         self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 40))
         self.img_rot += 60 * Values.DT
+        self.poly.render(self.canvas_screen)
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL).get())

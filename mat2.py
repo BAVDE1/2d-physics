@@ -5,7 +5,7 @@ from constants import *
 
 
 class Mat2:
-    def __init__(self, radians=0):
+    def __init__(self, radians=0.0):
         # m00, m01
         # m10, m11
         self.m00: float = 0
@@ -13,22 +13,29 @@ class Mat2:
         self.m10: float = 0
         self.m11: float = 0
 
-        self.radians = radians
+        self.radians: float = radians
 
-        if radians:
-            self.set_rad(radians)
+        self.refresh_matrix()
 
-    def set_rad(self, radians):
-        """ Set the matrix based on given theta (radians) """
-        cos: float = math.cos(radians)
-        sin: float = math.sin(radians)
+    def refresh_matrix(self):
+        """ Update matrix values """
+        cos: float = math.cos(self.radians)
+        sin: float = math.sin(self.radians)
 
         self.m00 = cos
         self.m01 = -sin
         self.m10 = sin
         self.m11 = cos
 
-        self.radians = radians
+    def set_rad(self, rad: float):
+        """ Set radians & update matrix (in place) """
+        self.radians = rad
+        self.refresh_matrix()
+
+    def add_rad(self, rad: float):
+        """ Add radians to self & update matrix (in place) """
+        self.radians += rad
+        self.refresh_matrix()
 
     def get(self) -> Self:
         """ Returns a copy of self """

@@ -10,7 +10,13 @@ collision article: https://research.ncl.ac.uk/game/mastersdegree/gametechnologie
 
 impulse article: https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/5collisionresponse/Physics%20-%20Collision%20Response.pdf
 
-walkthrough article: https://code.tutsplus.com/series/how-to-create-a-custom-physics-engine--gamedev-12715
+angular article: https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/3angularmotion/Physics%20-%20Angular%20Motion.pdf
+
+optimisation article: https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/6accelerationstructures/Physics%20-%20Spatial%20Acceleration%20Structures.pdf
+
+---
+
+walkthrough: https://code.tutsplus.com/series/how-to-create-a-custom-physics-engine--gamedev-12715
 
 video explanations: https://m.youtube.com/playlist?list=PLtrSb4XxIVbpZpV65kk73OoUcIrBzoSiO
 
