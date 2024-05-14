@@ -1,8 +1,9 @@
 import math
+import sys
 
 from constants import *
 from Vec2 import Vec2
-from objects import Object, Square, Circle
+from objects import Object, Circle, Polygon
 
 
 class Manifold:
@@ -17,8 +18,8 @@ class Manifold:
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
         self.jump_table = [
-            [box_colliding_box, box_colliding_ball],
-            [ball_colliding_box, ball_colliding_ball]
+            [poly_colliding_poly, poly_colliding_circle],
+            [circle_colliding_poly, circle_colliding_circle]
         ]
 
     def init_collision(self):
@@ -109,7 +110,7 @@ def clamp(value, min_v, max_v):
     return max(min_v, min(max_v, value))
 
 
-def ball_colliding_ball(m: Manifold, a: Circle, b: Circle):
+def circle_colliding_circle(m: Manifold, a: Circle, b: Circle):
     normal = b.pos - a.pos
     r = a.radius + b.radius
 
@@ -134,78 +135,121 @@ def ball_colliding_ball(m: Manifold, a: Circle, b: Circle):
     return True
 
 
-def box_colliding_ball(m: Manifold, a: Square, b: Circle):
-    inside = False
-    b_size_h = a.size / 2
-    x_extent, y_extent = b_size_h.x, b_size_h.y
+def poly_colliding_circle(m: Manifold, a: Polygon, b: Circle):
+    # inside = False
+    # b_size_h = a.size / 2
+    # x_extent, y_extent = b_size_h.x, b_size_h.y
+    #
+    # centre = (b.pos - b_size_h) - a.pos
+    # closest = centre.clone()  # closest point on a to center of b
+    #
+    # # clamp to edges of box
+    # closest.x = clamp(closest.x, -x_extent, x_extent)
+    # closest.y = clamp(closest.y, -y_extent, y_extent)
+    #
+    # # centre of the circle is inside box
+    # if centre == closest:
+    #     inside = True
+    #
+    #     if abs(centre.x) > abs(centre.y):  # find closest axis
+    #         closest.x = x_extent if closest.x > 0 else -x_extent  # x-axis is closer
+    #     else:
+    #         closest.y = y_extent if closest.y > 0 else -y_extent  # y-axis is closer
+    #
+    # # just like circle on circle collision
+    # normal = centre - closest
+    # r = b.radius
+    #
+    # # not colliding, ignore
+    # if normal.length_sq() >= r * r and not inside:
+    #     return False
+    #
+    # dist = normal.length()
+    # m.collision_count = 1
+    #
+    # normal /= dist  # normalise
+    # m.normal = -normal if inside else normal  # flip the collision if inside
+    # m.penetration = r - dist
+    # m.contact_points[0].set_vec(b.pos - (m.normal * b.radius))
+    # return True
+    return False
 
-    centre = (b.pos - b_size_h) - a.pos
-    closest = Vec2(*centre.get())  # closest point on a to center of b
 
-    # clamp to edges of box
-    closest.x = clamp(closest.x, -x_extent, x_extent)
-    closest.y = clamp(closest.y, -y_extent, y_extent)
-
-    # centre of the circle is inside box
-    if centre == closest:
-        inside = True
-
-        if abs(centre.x) > abs(centre.y):  # find closest axis
-            closest.x = x_extent if closest.x > 0 else -x_extent  # x-axis is closer
-        else:
-            closest.y = y_extent if closest.y > 0 else -y_extent  # y-axis is closer
-
-    # just like circle on circle collision
-    normal = centre - closest
-    r = b.radius
-
-    # not colliding, ignore
-    if normal.length_sq() >= r * r and not inside:
-        return False
-
-    dist = normal.length()
-    m.collision_count = 1
-
-    normal /= dist  # normalise
-    m.normal = -normal if inside else normal  # flip the collision if inside
-    m.penetration = r - dist
-    m.contact_points[0].set_vec(b.pos - (m.normal * b.radius))
-    return True
-
-
-def ball_colliding_box(m: Manifold, a: Circle, b: Square):
-    val = box_colliding_ball(m, b, a)
+def circle_colliding_poly(m: Manifold, a: Circle, b: Polygon):
+    val = poly_colliding_circle(m, b, a)
     m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
     return val
 
 
-def box_colliding_box(m: Manifold, a: Square, b: Square):
-    a_size_h, b_size_h = a.size / 2, b.size / 2
+def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
+    # check for penetrating faces with both a and b polygons
+    face_a, penetration_a = find_axis_penetration(a, b)
+    if penetration_a >= 0.0:
+        return
 
-    normal = (b.pos - a_size_h) - (a.pos - b_size_h)  # allows for different size boxes
-    x_overlap = a_size_h.x + b_size_h.x - abs(normal.x)
+    face_b, penetration_b = find_axis_penetration(b, a)
+    if penetration_b >= 0.0:
+        return
 
-    if x_overlap > 0:
-        y_overlap = a_size_h.y + b_size_h.y - abs(normal.y)
+    # polys are colliding, continue
 
-        if y_overlap > 0:
-            cp = 0
-            cp += 2
 
-            # use axis of the least penetration
-            if x_overlap < y_overlap:  # push x
-                x_normal = int(normal.x > 0) * 2 - 1
-                m.normal = Vec2(x_normal, 0)
-                m.penetration = x_overlap
-
-                m.contact_points[0].set_vec((a.pos - b.pos) - normal)
-            else:  # push y
-                y_normal = int(normal.y > 0) * 2 - 1
-                m.normal = Vec2(0, y_normal)
-                m.penetration = y_overlap
-
-                m.contact_points[0].set_vec((a.pos - b.pos) - normal)
-            # m.contact_points[0].set_vec(a.pos + y_overlap)
-            m.collision_count = cp
-            return True
+    # a_size_h, b_size_h = a.size / 2, b.size / 2
+    #
+    # normal = (b.pos - a_size_h) - (a.pos - b_size_h)  # allows for different size boxes
+    # x_overlap = a_size_h.x + b_size_h.x - abs(normal.x)
+    #
+    # if x_overlap > 0:
+    #     y_overlap = a_size_h.y + b_size_h.y - abs(normal.y)
+    #
+    #     if y_overlap > 0:
+    #         cp = 0
+    #         cp += 2
+    #
+    #         # use axis of the least penetration
+    #         if x_overlap < y_overlap:  # push x
+    #             x_normal = int(normal.x > 0) * 2 - 1
+    #             m.normal = Vec2(x_normal, 0)
+    #             m.penetration = x_overlap
+    #
+    #             m.contact_points[0].set_vec((a.pos - b.pos) - normal)
+    #         else:  # push y
+    #             y_normal = int(normal.y > 0) * 2 - 1
+    #             m.normal = Vec2(0, y_normal)
+    #             m.penetration = y_overlap
+    #
+    #             m.contact_points[0].set_vec((a.pos - b.pos) - normal)
+    #         # m.contact_points[0].set_vec(a.pos + y_overlap)
+    #         m.collision_count = cp
+    #         return True
     return False
+
+
+def find_axis_penetration(a: Polygon, b: Polygon) -> (int, float):
+    """ Find axis (vertex of polygon a) of the least penetration (with polygon b) and return the vertex index & penetration distance """
+    best_dist: float = -sys.float_info.max  # so (mostly) anything is greater than this
+    best_inx: int = 0
+
+    for i in range(a.vertex_count):
+        norm: Vec2 = a.normals[i]
+
+        # transform face normal into b's model space
+        b_mat: Mat2 = b.mat2.transpose()
+        n: Vec2 = b_mat.mul_vec(norm)
+
+        # support point
+        support: Vec2 = b.get_support(n.negate())
+
+        # transform support vertex into b's model space
+        vert: Vec2 = (a.mat2.mul_vec(a.vertices[i]) + a.pos) - b.pos
+        vert: Vec2 = b_mat.mul_vec(vert)
+
+        # distance of penetration
+        dist: float = n.dot(support - vert)
+
+        # store biggest distance
+        if dist > best_dist:
+            best_dist = dist
+            best_inx = i
+
+    return best_inx, best_dist

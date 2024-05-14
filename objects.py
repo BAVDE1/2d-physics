@@ -1,4 +1,5 @@
 import math
+import sys
 
 from constants import *
 from Vec2 import Vec2
@@ -28,7 +29,6 @@ class Object:
 
         # texture
         self.colour = Colours.WHITE
-        self._outline_size = 2
 
         # linear properties
         self.velocity: Vec2 = Vec2()
@@ -40,6 +40,7 @@ class Object:
         self.orientation: float = 0  # in radians
         self.angular_velocity: Vec2 = Vec2()
         self.torque: float = 0
+        self.mat2 = Mat2(self.orientation)
 
         # mass
         self.material = Material(material)
@@ -54,7 +55,7 @@ class Object:
 
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
         """ Apply given impulse to self (multiplied by inv_mass) """
-        if not self.static:
+        if not self.static and False:
             self.velocity.add_self(impulse, self.inv_mass)
 
     def is_out_of_bounds(self, check_top=False):
@@ -118,33 +119,9 @@ class Circle(Object):
         self.inv_inertia = 0 if self.static else 1 / self.inertia
 
     def render(self, screen: pg.Surface):
-        ps = 1  # half of line size
         pg.draw.line(screen, self.colour,
-                     Vec2(self.pos.x - ps, self.pos.y).get(), Vec2(self.pos.x - ps, self.pos.y - self.radius).get(), 2)
-        pg.draw.circle(screen, self.colour, self.pos.get(), ps)
-        pg.draw.circle(screen, self.colour, self.pos.get(), self.radius, 2)
-
-
-class Square(Object):
-    def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
-        super().__init__(pos, static, material, layer)
-        self._type = 'Box'
-        self.size = size
-
-        self.compute_mass()
-
-    @property
-    def lower_pos(self):
-        return self.pos + self.size
-
-    def compute_mass(self):
-        mass = self.material.density * self.size.x * self.size.y
-        self.mass = Forces.INF_MASS if self.static else mass
-        self.inv_mass = 0 if self.static else 1 / self.mass
-
-    def render(self, screen: pg.Surface):
-        pg.draw.line(screen, self.colour, self.pos.get(), (self.lower_pos - 1).get())
-        pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), self._outline_size)
+                     Vec2(self.pos.x, self.pos.y).get(), Vec2(self.pos.x, self.pos.y - self.radius).get(), 1)
+        pg.draw.circle(screen, self.colour, self.pos.get(), self.radius, 1)
 
 
 class Polygon(Object):
@@ -194,13 +171,13 @@ class Polygon(Object):
         for i in range(self.vertex_count):
             self.vertices[i] -= com
 
-        self.mass = self.material.density * area
+        self.mass = abs(self.material.density * area)
         self.inv_mass = 0 if self.static else 1 / self.mass
-        self.inertia = inertia * self.material.density
+        self.inertia = abs(inertia * self.material.density)
         self.inv_inertia = 0 if self.static else 1 / self.inertia
 
     def set(self, verts: list[Vec2]):
-        # todo: do more stuff here
+        # todo: do more stuff here?
         self.vertices = verts
         self.vertex_count = len(verts)
 
@@ -213,5 +190,46 @@ class Polygon(Object):
 
         self.compute_mass()
 
+    def get_support(self, direction: Vec2) -> Vec2:
+        """ Find the furthest support point (vertex) along given direction """
+        best_projection: float = -sys.float_info.max
+        best_vertex: Vec2 = Vec2()
+
+        for v in self.vertices:
+            proj: float = v.dot(direction)
+
+            if proj > best_projection:
+                best_projection = proj
+                best_vertex = v
+        return best_vertex
+
     def render(self, screen: pg.Surface):
-        pg.draw.rect(screen, Colours.RED, pg.Rect(self.pos.get(), (1, 1)))
+        pg.draw.rect(screen, Colours.RED, pg.Rect(self.pos.get(), (1, 1)))  # com
+
+        for i in range(self.vertex_count):
+            p1: Vec2 = self.vertices[i] + self.pos
+            p2: Vec2 = self.vertices[(i + 1) % self.vertex_count] + self.pos
+
+            pg.draw.line(screen, Colours.WHITE, p1.get(), p2.get(), 1)
+
+
+# class Square(Object):
+#     def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
+#         super().__init__(pos, static, material, layer)
+#         self._type = 'Box'
+#         self.size = size
+#
+#         self.compute_mass()
+#
+#     @property
+#     def lower_pos(self):
+#         return self.pos + self.size
+#
+#     def compute_mass(self):
+#         mass = self.material.density * self.size.x * self.size.y
+#         self.mass = Forces.INF_MASS if self.static else mass
+#         self.inv_mass = 0 if self.static else 1 / self.mass
+#
+#     def render(self, screen: pg.Surface):
+#         pg.draw.line(screen, self.colour, self.pos.get(), (self.lower_pos - 1).get())
+#         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), 1)

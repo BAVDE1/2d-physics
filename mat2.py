@@ -37,7 +37,7 @@ class Mat2:
         self.radians += rad
         self.refresh_matrix()
 
-    def get(self) -> Self:
+    def clone(self) -> Self:
         """ Returns a copy of self """
         return Mat2(self.radians)
 
@@ -48,7 +48,7 @@ class Mat2:
     def abs(self, mat: Self = None) -> Self:
         """ Absolute copy of this matrix """
         if mat is None:
-            mat = self.get()
+            mat = self.clone()
 
         mat.m00 = abs(mat.m00)
         mat.m01 = abs(mat.m01)
@@ -81,3 +81,20 @@ class Mat2:
             return mat
         else:
             raise TypeError("Given param\\s are not of type 'Mat22'")
+
+    def transpose_self(self) -> Self:
+        """ Set matrix to its transpose (in place) """
+        m01 = self.m01
+        self.m01 = self.m10
+        self.m10 = m01
+        return self
+
+    def transpose(self) -> Self:
+        """ Return a new matrix that is a transpose of this """
+        mat = self.clone()
+        mat.m00 = self.m00
+        mat.m01 = self.m10
+        mat.m10 = self.m01
+        mat.m11 = self.m11
+        return mat
+

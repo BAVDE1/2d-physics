@@ -18,13 +18,14 @@ class Vec2:
         """ Length squared """
         return self.x ** 2 + self.y ** 2
 
-    def normalise_self(self):
+    def normalise_self(self) -> Self:
         """ This vector with a length of 1 (in place) """
         length_sq = self.length_sq()
         if length_sq > EPSILON_SQ:
             inv_len = 1 / math.sqrt(length_sq)
             self.x *= inv_len
             self.y *= inv_len
+        return self
 
     def dot(self, vec) -> float:
         """ Dot product of this and vec """

@@ -4,7 +4,7 @@ from constants import *
 
 from manifold import Manifold
 from water import Water
-from objects import Object, Circle, Square, Polygon
+from objects import Object, Circle, Polygon
 from Vec2 import Vec2
 from particle import Particle
 
@@ -16,8 +16,8 @@ def get_mp():
 
 def holding_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
-    if isinstance(obj, Square):
-        mp -= obj.size / 2  # middle of box
+    # if isinstance(obj, Polygon):
+    #     mp -= obj.size / 2  # middle of box
 
     max_f = Vec2(40, 40)
     force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
@@ -91,20 +91,23 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.o1 = Circle(Vec2(10, 10), 7)
+        self.o1 = Circle(Vec2(10, 60), 7)
         self.o2 = Circle(Vec2(60, 60))
-        self.o3 = Circle(Vec2(180, 30), 10)
+        self.o3 = Circle(Vec2(200, 30), 10)
         self.o4 = Circle(Vec2(120, 100), 20)
-        self.o5 = Square(Vec2(150, 60))
-        self.o6 = Square(Vec2(155, 80), Vec2(10, 15))
+        self.pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
+        self.pb = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
 
-        self.o4.velocity.set(50, -55)
+        # self.o5 = Square(Vec2(150, 60))
+        # self.o6 = Square(Vec2(155, 80), Vec2(10, 15))
 
-        self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
-        self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)
-        self.g3 = Square(Vec2(250, 75), size=Vec2(10, 100), static=True)
+        # self.o4.velocity.set(50, -55)
 
-        self.objects_group = Group([self.o1, self.o2, self.o3, self.o4, self.o5, self.o6, self.g1, self.g2, self.g3])
+        # self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
+        # self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)
+        # self.g3 = Square(Vec2(250, 75), size=Vec2(10, 100), static=True)
+
+        self.objects_group = Group([self.o1, self.o2, self.o3, self.o4, self.pa, self.pb])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -120,9 +123,6 @@ class Game:
         pg.draw.rect(self.img, c, pg.Rect(30, (self.img.get_height() / 2) - 5, 10, 10))
         self.img_rot = 0
 
-        self.poly = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(10, 0), Vec2(10, 10)])
-        print(self.poly.normals)
-
     def events(self):
         for event in pg.event.get():
             # key input
@@ -135,7 +135,7 @@ class Game:
             # mouse
             if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
                 r = 5
-                p = Vec2(*self.mp.get())
+                p = self.mp.clone()
                 p.y -= r + 10
                 for _ in range(8):
                     self.particles_group.add(
@@ -212,7 +212,7 @@ class Game:
             part.update(Values.DT)
 
     def update(self):
-        holding_object(self.o1, self.mp)
+        holding_object(self.pb, self.mp)
 
         self.water.update()
 
@@ -240,7 +240,6 @@ class Game:
         # test renders
         self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 40))
         self.img_rot += 60 * Values.DT
-        self.poly.render(self.canvas_screen)
 
         # final
         scaled = pg.transform.scale(self.canvas_screen, Vec2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL).get())

@@ -1,12 +1,13 @@
 import pygame as pg
 from Vec2 import Vec2, EPSILON
+from mat2 import Mat2
 
 
 class Forces:
     PENETRATION_ALLOWANCE = 0.05  # aka slop
     POSITIONAL_CORRECTION = 0.2  # 20% - 80%
     INF_MASS = 0
-    GRAVITY = Vec2(0, 100)  # 100
+    GRAVITY = Vec2(0, 0)  # 100
     AIR_VELOCITY = Vec2()  # for wind or something
 
 
