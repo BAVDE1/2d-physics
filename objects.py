@@ -95,7 +95,7 @@ class Object:
         self.static_correction()
 
     def __repr__(self):
-        return f'{self._type}(layer: {self.layer})'
+        return f'{self._type}(layer: {self.layer}, pos: {self.pos})'
 
 
 class Circle(Object):

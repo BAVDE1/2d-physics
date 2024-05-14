@@ -3,9 +3,15 @@ from Vec2 import Vec2, EPSILON
 from mat2 import Mat2
 
 
+def greater_than(pen_a: float, pen_b: float):
+    return pen_a >= (pen_b * Forces.BIAS_RELATIVE) + (pen_a * Forces.BIAS_ABSOLUTE)
+
+
 class Forces:
     PENETRATION_ALLOWANCE = 0.05  # aka slop
     POSITIONAL_CORRECTION = 0.2  # 20% - 80%
+    BIAS_RELATIVE = 0.95
+    BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
     GRAVITY = Vec2(0, 0)  # 100
     AIR_VELOCITY = Vec2()  # for wind or something

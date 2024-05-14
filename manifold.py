@@ -183,15 +183,21 @@ def circle_colliding_poly(m: Manifold, a: Circle, b: Polygon):
 
 def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
     # check for penetrating faces with both a and b polygons
-    face_a, penetration_a = find_axis_penetration(a, b)
-    if penetration_a >= 0.0:
+    face_a_inx, pen_a = find_axis_penetration(a, b)
+    if pen_a >= 0.0:
         return
 
-    face_b, penetration_b = find_axis_penetration(b, a)
-    if penetration_b >= 0.0:
+    face_b_inx, pen_b = find_axis_penetration(b, a)
+    if pen_b >= 0.0:
         return
 
-    # polys are colliding, continue
+    # polys are colliding, get collision values
+    flip: bool = not greater_than(pen_a, pen_b)  # always a to b
+
+    ref_poly: Polygon
+    inc_poly: Polygon
+    ref_poly, inc_poly = (b, a) if flip else (a, b)
+    ref_inx: int = face_b_inx if flip else face_a_inx
 
 
     # a_size_h, b_size_h = a.size / 2, b.size / 2
@@ -225,7 +231,7 @@ def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
     return False
 
 
-def find_axis_penetration(a: Polygon, b: Polygon) -> (int, float):
+def find_axis_penetration(a: Polygon, b: Polygon) -> tuple[int, float]:
     """ Find axis (vertex of polygon a) of the least penetration (with polygon b) and return the vertex index & penetration distance """
     best_dist: float = -sys.float_info.max  # so (mostly) anything is greater than this
     best_inx: int = 0
