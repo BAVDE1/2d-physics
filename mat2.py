@@ -92,9 +92,7 @@ class Mat2:
     def transpose(self) -> Self:
         """ Return a new matrix that is a transpose of this """
         mat = self.clone()
-        mat.m00 = self.m00
         mat.m01 = self.m10
         mat.m10 = self.m01
-        mat.m11 = self.m11
         return mat
 

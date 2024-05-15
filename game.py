@@ -95,7 +95,7 @@ class Game:
         self.o2 = Circle(Vec2(60, 60))
         self.o3 = Circle(Vec2(200, 30), 10)
         self.o4 = Circle(Vec2(120, 100), 20)
-        self.pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
+        self.pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15), Vec2(0, 15)])
         self.pb = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
 
         # self.o5 = Square(Vec2(150, 60))

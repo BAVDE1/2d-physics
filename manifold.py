@@ -184,50 +184,63 @@ def circle_colliding_poly(m: Manifold, a: Circle, b: Polygon):
 def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
     # check for penetrating faces with both a and b polygons
     face_a_inx, pen_a = find_axis_penetration(a, b)
-    if pen_a >= 0.0:
-        return
+    if pen_a < 0.0:
+        face_b_inx, pen_b = find_axis_penetration(b, a)
+        if pen_b < 0.0:
+            # polys are colliding, get collision values
+            flip: bool = not greater_than(pen_a, pen_b)  # always a to b
 
-    face_b_inx, pen_b = find_axis_penetration(b, a)
-    if pen_b >= 0.0:
-        return
+            ref_poly: Polygon  # reference
+            inc_poly: Polygon  # incident
+            ref_poly, inc_poly = (b, a) if flip else (a, b)
+            ref_inx: int = face_b_inx if flip else face_a_inx
 
-    # polys are colliding, get collision values
-    flip: bool = not greater_than(pen_a, pen_b)  # always a to b
+            # setup face vertices (in world space)
+            inc_face1: Vec2
+            inc_face2: Vec2
+            inc_face1, inc_face2 = find_incident_face(ref_poly, inc_poly, ref_inx)
+            ref_face1: Vec2
+            ref_face2: Vec2
+            ref_face1, ref_face2 = find_reference_face(ref_poly, ref_inx)
 
-    ref_poly: Polygon
-    inc_poly: Polygon
-    ref_poly, inc_poly = (b, a) if flip else (a, b)
-    ref_inx: int = face_b_inx if flip else face_a_inx
+            side_plane_norm: Vec2 = (ref_face2 - ref_face1).normalise_self()
+            ref_face_norm: Vec2 = Vec2(side_plane_norm.y, -side_plane_norm.x)  # orthogonal
 
+            # c distance from origin
+            ref_c: float = ref_face_norm.dot(ref_face1)
+            neg_side: float = -side_plane_norm.dot(ref_face1)
+            pos_side: float = side_plane_norm.dot(ref_face2)
 
-    # a_size_h, b_size_h = a.size / 2, b.size / 2
-    #
-    # normal = (b.pos - a_size_h) - (a.pos - b_size_h)  # allows for different size boxes
-    # x_overlap = a_size_h.x + b_size_h.x - abs(normal.x)
-    #
-    # if x_overlap > 0:
-    #     y_overlap = a_size_h.y + b_size_h.y - abs(normal.y)
-    #
-    #     if y_overlap > 0:
-    #         cp = 0
-    #         cp += 2
-    #
-    #         # use axis of the least penetration
-    #         if x_overlap < y_overlap:  # push x
-    #             x_normal = int(normal.x > 0) * 2 - 1
-    #             m.normal = Vec2(x_normal, 0)
-    #             m.penetration = x_overlap
-    #
-    #             m.contact_points[0].set_vec((a.pos - b.pos) - normal)
-    #         else:  # push y
-    #             y_normal = int(normal.y > 0) * 2 - 1
-    #             m.normal = Vec2(0, y_normal)
-    #             m.penetration = y_overlap
-    #
-    #             m.contact_points[0].set_vec((a.pos - b.pos) - normal)
-    #         # m.contact_points[0].set_vec(a.pos + y_overlap)
-    #         m.collision_count = cp
-    #         return True
+            # Clip incident face to reference face side planes
+            inc_face1, inc_face2, sp = clip(side_plane_norm.negate(), neg_side, inc_face1, inc_face2)
+            if sp < 2:
+                return False
+            inc_face1, inc_face2, sp = clip(side_plane_norm, pos_side, inc_face1, inc_face2)
+            if sp < 2:
+                return False
+
+            # flip
+            m.normal = ref_face_norm.clone()
+            if flip:
+                m.normal.negate_self()
+
+            # Keep points behind reference face
+            cp: int = 0  # clipped points behind reference face
+            separation: float = ref_face_norm.dot(inc_face1) - ref_c
+            if separation <= 0:
+                m.contact_points[cp] = inc_face1.clone()
+                m.penetration = -separation
+                cp += 1
+
+            separation: float = ref_face_norm.dot(inc_face2) - ref_c
+            if separation <= 0:
+                m.contact_points[cp] = inc_face2.clone()
+                m.penetration += -separation
+                cp += 1
+
+                m.penetration /= cp  # average
+            m.collision_count = cp
+            return True
     return False
 
 
@@ -259,3 +272,65 @@ def find_axis_penetration(a: Polygon, b: Polygon) -> tuple[int, float]:
             best_inx = i
 
     return best_inx, best_dist
+
+
+def find_incident_face(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
+    """ Returns face vertices on incident poly in world space """
+    ref_norm: Vec2 = ref_poly.normals[ref_inx]
+
+    # Calculate normal in incident's frame of reference
+    ref_norm: Vec2 = ref_poly.mat2.mul_vec(ref_norm)  # world space
+    ref_norm: Vec2 = inc_poly.mat2.transpose().mul_vec(ref_norm)  # inc model space
+
+    # Find most anti-normal face on incident polygon
+    inc_face: int = 0
+    min_dot: float = sys.float_info.max
+    for i in range(inc_poly.vertex_count):
+        dot: float = ref_norm.dot(inc_poly.normals[i])
+
+        if dot < min_dot:
+            min_dot = dot
+            inc_face = i
+
+    # Assign face vertices for incident faces (transformed into world space by adding pos)
+    face1: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face]) + inc_poly.pos
+    inc_face = (inc_face + 1) % inc_poly.vertex_count  # next face
+    face2: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face]) + inc_poly.pos
+    return face1, face2
+
+
+def find_reference_face(ref_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
+    """ Returns face vertices on reference poly in world space """
+    # Assign face vertices for ref faces
+    # "x_poly.vertices[x_inx]" is model space, add poly pos to be world space
+    face1: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx]) + ref_poly.pos
+    ref_inx = (ref_inx + 1) % ref_poly.vertex_count  # next face
+    face2: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx]) + ref_poly.pos
+    return face1, face2
+
+
+def clip(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec2, Vec2, int]:
+    """ Clip down the given faces to side length """
+    i: int = 0
+    out = [inc_face1.clone(), inc_face2.clone()]
+
+    # Retrieve distances from each endpoint to the line
+    d1: float = norm.dot(inc_face1) - side
+    d2: float = norm.dot(inc_face2) - side
+
+    # If negative (behind plane) clip
+    if d1 <= 0:
+        out[i] = inc_face1.clone()
+        i += 1
+    if d2 <= 0:
+        out[i] = inc_face2.clone()
+        i += 1
+
+    # If the points are on different sides of the plane
+    if d1 * d2 < 0:
+        alpha: float = d1 / (d2 - d1)
+        out[i] = (inc_face1 - inc_face2) * alpha
+        out[i] += inc_face1
+        i += 1
+
+    return out[0], out[1], i

@@ -55,7 +55,7 @@ class Object:
 
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
         """ Apply given impulse to self (multiplied by inv_mass) """
-        if not self.static and False:
+        if not self.static:
             self.velocity.add_self(impulse, self.inv_mass)
 
     def is_out_of_bounds(self, check_top=False):
