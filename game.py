@@ -172,7 +172,7 @@ class Game:
                 ch = Manifold(a, b)
                 ch.init_collision()
 
-                if ch.collision_count > 0:
+                if ch.contact_count > 0:
                     self.collisions.append(ch)
 
     def update_objects(self):

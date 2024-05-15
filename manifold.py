@@ -14,7 +14,7 @@ class Manifold:
         self.normal = Vec2(0, 0)
         self.penetration = 0
 
-        self.collision_count = 0
+        self.contact_count = 0
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
         self.jump_table = [
@@ -34,7 +34,7 @@ class Manifold:
 
     def resolve_collision(self):
         """ Apply impulse on colliding objects to solve collisions """
-        if not self.collision_count:
+        if not self.contact_count:
             return
 
         # relative values
@@ -95,7 +95,7 @@ class Manifold:
         self.b.pos += self.normal * (-self.b.inv_mass * correction)
 
     def render(self, screen: pg.Surface):
-        for ci in range(self.collision_count):
+        for ci in range(self.contact_count):
             cp = self.contact_points[ci]
             if cp != Vec2(0, 0):
                 rec_a = pg.Rect(cp.get(), (1, 1))
@@ -110,112 +110,128 @@ def clamp(value, min_v, max_v):
     return max(min_v, min(max_v, value))
 
 
-def circle_colliding_circle(m: Manifold, a: Circle, b: Circle):
-    normal = b.pos - a.pos
-    r = a.radius + b.radius
+def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle):
+    normal = c2.pos - c1.pos
+    r = c1.radius + c2.radius
 
     # not colliding, ignore
     if normal.length_sq() >= r * r:
         return False
 
     dist = normal.length()
-    m.collision_count = 1
+    m.contact_count = 1
 
     if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
-        m.penetration = a.radius
+        m.penetration = c1.radius
 
-        m.contact_points[0].set(*a.pos.get())
+        m.contact_points[0].set(*c1.pos.get())
     else:
         m.normal = normal / dist  # normalise
         m.penetration = r - dist
 
-        cp_a = a.pos + (m.normal * (a.radius - m.penetration * .5))  # middle of penetration
+        cp_a = c1.pos + (m.normal * (c1.radius - m.penetration * .5))  # middle of penetration
         m.contact_points[0].set(*cp_a.get())
     return True
 
 
-def poly_colliding_circle(m: Manifold, a: Polygon, b: Circle):
-    # inside = False
-    # b_size_h = a.size / 2
-    # x_extent, y_extent = b_size_h.x, b_size_h.y
-    #
-    # centre = (b.pos - b_size_h) - a.pos
-    # closest = centre.clone()  # closest point on a to center of b
-    #
-    # # clamp to edges of box
-    # closest.x = clamp(closest.x, -x_extent, x_extent)
-    # closest.y = clamp(closest.y, -y_extent, y_extent)
-    #
-    # # centre of the circle is inside box
-    # if centre == closest:
-    #     inside = True
-    #
-    #     if abs(centre.x) > abs(centre.y):  # find closest axis
-    #         closest.x = x_extent if closest.x > 0 else -x_extent  # x-axis is closer
-    #     else:
-    #         closest.y = y_extent if closest.y > 0 else -y_extent  # y-axis is closer
-    #
-    # # just like circle on circle collision
-    # normal = centre - closest
-    # r = b.radius
-    #
-    # # not colliding, ignore
-    # if normal.length_sq() >= r * r and not inside:
-    #     return False
-    #
-    # dist = normal.length()
-    # m.collision_count = 1
-    #
-    # normal /= dist  # normalise
-    # m.normal = -normal if inside else normal  # flip the collision if inside
-    # m.penetration = r - dist
-    # m.contact_points[0].set_vec(b.pos - (m.normal * b.radius))
-    # return True
-    return False
+def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
+    # circle center into polygon model space
+    center: Vec2 = p.mat2.transpose().mul_vec(c.pos - p.pos)
+
+    separation: float = -sys.float_info.max
+    v_inx: int = 0
+    for i in range(p.vertex_count):
+        s: float = p.normals[i].dot(center - p.vertices[i])
+        if s > c.radius:
+            return False  # too far away, skip collision
+        if s > separation:
+            separation = s
+            v_inx = i
+
+    # face vertices
+    v1: Vec2 = p.vertices[v_inx]
+    v_inx = (v_inx + 1) % p.vertex_count  # next face
+    v2: Vec2 = p.vertices[v_inx]
+
+    # if center within poly
+    if separation < EPSILON:
+        m.contact_count = 1
+        m.normal = p.mat2.mul_vec(p.normals[v_inx]).negate()
+        m.contact_points[0] = (m.normal * c.radius) + c.pos
+        m.penetration = c.radius
+        return True
+
+    # Determine which voronoi region of the edge center of circle lies within
+    dot1: float = (center - v1).dot(v2 - v1)
+    dot2: float = (center - v2).dot(v1 - v2)
+    m.penetration = c.radius - separation
+
+    # v1 closest
+    if dot1 <= 0:
+        if center.length_sq_other(v1) > c.radius ** 2:
+            return False
+
+        m.normal = p.mat2.mul_vec(v1 - center).normalise_self()
+        m.contact_points[0] = p.mat2.mul_vec(v1) + p.pos
+    elif dot2 <= 0:  # v2 closest
+        if center.length_sq_other(v2) > c.radius ** 2:
+            return False
+
+        m.normal = p.mat2.mul_vec(v2 - center).normalise_self()
+        m.contact_points[0] = p.mat2.mul_vec(v2) + p.pos
+    else:  # face closest
+        n: Vec2 = p.normals[v_inx]
+        if (center - v1).dot(n) > c.radius:
+            return False
+
+        m.normal = p.mat2.mul_vec(n).negate()
+        m.contact_points[0] = c.pos + (m.normal * c.radius)
+    m.contact_count = 1
+    return True
 
 
-def circle_colliding_poly(m: Manifold, a: Circle, b: Polygon):
-    val = poly_colliding_circle(m, b, a)
+def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon):
+    val = poly_colliding_circle(m, p, c)
     m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
     return val
 
 
-def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
+def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon):
     # check for penetrating faces with both a and b polygons
-    face_a_inx, pen_a = find_axis_penetration(a, b)
+    face_a_inx, pen_a = find_axis_penetration(p1, p2)
     if pen_a < 0.0:
-        face_b_inx, pen_b = find_axis_penetration(b, a)
+        face_b_inx, pen_b = find_axis_penetration(p2, p1)
         if pen_b < 0.0:
             # polys are colliding, get collision values
             flip: bool = not greater_than(pen_a, pen_b)  # always a to b
 
             ref_poly: Polygon  # reference
             inc_poly: Polygon  # incident
-            ref_poly, inc_poly = (b, a) if flip else (a, b)
+            ref_poly, inc_poly = (p2, p1) if flip else (p1, p2)
             ref_inx: int = face_b_inx if flip else face_a_inx
 
-            # setup face vertices (in world space)
-            inc_face1: Vec2
-            inc_face2: Vec2
-            inc_face1, inc_face2 = find_incident_face(ref_poly, inc_poly, ref_inx)
-            ref_face1: Vec2
-            ref_face2: Vec2
-            ref_face1, ref_face2 = find_reference_face(ref_poly, ref_inx)
+            # get face vertices (in world space)
+            inc_v1: Vec2
+            inc_v2: Vec2
+            inc_v1, inc_v2 = find_incident_face(ref_poly, inc_poly, ref_inx)
+            ref_v1: Vec2
+            ref_v2: Vec2
+            ref_v1, ref_v2 = find_reference_face(ref_poly, ref_inx)
 
-            side_plane_norm: Vec2 = (ref_face2 - ref_face1).normalise_self()
+            side_plane_norm: Vec2 = (ref_v2 - ref_v1).normalise_self()
             ref_face_norm: Vec2 = Vec2(side_plane_norm.y, -side_plane_norm.x)  # orthogonal
 
             # c distance from origin
-            ref_c: float = ref_face_norm.dot(ref_face1)
-            neg_side: float = -side_plane_norm.dot(ref_face1)
-            pos_side: float = side_plane_norm.dot(ref_face2)
+            ref_c: float = ref_face_norm.dot(ref_v1)
+            neg_side: float = -side_plane_norm.dot(ref_v1)
+            pos_side: float = side_plane_norm.dot(ref_v2)
 
             # Clip incident face to reference face side planes
-            inc_face1, inc_face2, sp = clip(side_plane_norm.negate(), neg_side, inc_face1, inc_face2)
+            inc_v1, inc_v2, sp = clip(side_plane_norm.negate(), neg_side, inc_v1, inc_v2)
             if sp < 2:
                 return False
-            inc_face1, inc_face2, sp = clip(side_plane_norm, pos_side, inc_face1, inc_face2)
+            inc_v1, inc_v2, sp = clip(side_plane_norm, pos_side, inc_v1, inc_v2)
             if sp < 2:
                 return False
 
@@ -226,20 +242,20 @@ def poly_colliding_poly(m: Manifold, a: Polygon, b: Polygon):
 
             # Keep points behind reference face
             cp: int = 0  # clipped points behind reference face
-            separation: float = ref_face_norm.dot(inc_face1) - ref_c
+            separation: float = ref_face_norm.dot(inc_v1) - ref_c
             if separation <= 0:
-                m.contact_points[cp] = inc_face1.clone()
+                m.contact_points[cp] = inc_v1.clone()
                 m.penetration = -separation
                 cp += 1
 
-            separation: float = ref_face_norm.dot(inc_face2) - ref_c
+            separation: float = ref_face_norm.dot(inc_v2) - ref_c
             if separation <= 0:
-                m.contact_points[cp] = inc_face2.clone()
+                m.contact_points[cp] = inc_v2.clone()
                 m.penetration += -separation
                 cp += 1
 
                 m.penetration /= cp  # average
-            m.collision_count = cp
+            m.contact_count = cp
             return True
     return False
 
@@ -312,7 +328,7 @@ def find_reference_face(ref_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
 def clip(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec2, Vec2, int]:
     """ Clip down the given faces to side length """
     i: int = 0
-    out = [inc_face1.clone(), inc_face2.clone()]
+    faces = [inc_face1.clone(), inc_face2.clone()]
 
     # Retrieve distances from each endpoint to the line
     d1: float = norm.dot(inc_face1) - side
@@ -320,17 +336,17 @@ def clip(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec
 
     # If negative (behind plane) clip
     if d1 <= 0:
-        out[i] = inc_face1.clone()
+        faces[i] = inc_face1.clone()
         i += 1
     if d2 <= 0:
-        out[i] = inc_face2.clone()
+        faces[i] = inc_face2.clone()
         i += 1
 
     # If the points are on different sides of the plane
     if d1 * d2 < 0:
         alpha: float = d1 / (d2 - d1)
-        out[i] = (inc_face1 - inc_face2) * alpha
-        out[i] += inc_face1
+        faces[i] = (inc_face1 - inc_face2) * alpha
+        faces[i] += inc_face1
         i += 1
 
-    return out[0], out[1], i
+    return faces[0], faces[1], i

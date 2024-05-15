@@ -3,8 +3,8 @@ from Vec2 import Vec2, EPSILON
 from mat2 import Mat2
 
 
-def greater_than(pen_a: float, pen_b: float):
-    return pen_a >= (pen_b * Forces.BIAS_RELATIVE) + (pen_a * Forces.BIAS_ABSOLUTE)
+def greater_than(a: float, b: float):
+    return a >= (b * Forces.BIAS_RELATIVE) + (a * Forces.BIAS_ABSOLUTE)
 
 
 class Forces:

@@ -16,7 +16,12 @@ class Vec2:
 
     def length_sq(self) -> float:
         """ Length squared """
-        return self.x ** 2 + self.y ** 2
+        return (self.x ** 2) + (self.y ** 2)
+
+    def length_sq_other(self, other: Self) -> float:
+        """ Finds distance and squares to find the length """
+        v = Vec2(self.x - other.x, self.y - other.y)
+        return (v.x ** 2) + (v.y ** 2)
 
     def normalise_self(self) -> Self:
         """ This vector with a length of 1 (in place) """

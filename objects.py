@@ -204,7 +204,7 @@ class Polygon(Object):
         return best_vertex
 
     def render(self, screen: pg.Surface):
-        pg.draw.rect(screen, Colours.RED, pg.Rect(self.pos.get(), (1, 1)))  # com
+        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), (1, 1)))  # com
 
         for i in range(self.vertex_count):
             p1: Vec2 = self.vertices[i] + self.pos
