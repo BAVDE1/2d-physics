@@ -135,7 +135,7 @@ def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle) -> bool:
     return True
 
 
-def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
+def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
     # circle center into polygon model space
     center: Vec2 = p.mat2.transpose().mul_vec(c.pos - p.pos)
 
@@ -157,7 +157,7 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
     # if center within poly
     if separation < EPSILON:
         m.contact_count = 1
-        m.normal = p.mat2.mul_vec(p.normals[v_inx])
+        m.normal = p.mat2.mul_vec(p.normals[v_inx]).negate()
         m.contact_points[0] = (m.normal * c.radius) + c.pos
         m.penetration = c.radius
         return True
@@ -173,21 +173,21 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
         if center.length_sq_other(v) > c.radius ** 2:
             return False
 
-        m.normal = p.mat2.mul_vec(v - center).normalise_self().negate()
+        m.normal = p.mat2.mul_vec(v - center).normalise_self()
         m.contact_points[0] = p.mat2.mul_vec(v) + p.pos
     else:  # face closest
         n: Vec2 = p.normals[v_inx]
         if (center - v1).dot(n) > c.radius:
             return False
 
-        m.normal = p.mat2.mul_vec(n)
+        m.normal = p.mat2.mul_vec(n).negate()
         m.contact_points[0] = c.pos + (m.normal * c.radius)
     m.contact_count = 1
     return True
 
 
-def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
-    val = poly_colliding_circle(m, p, c)
+def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
+    val = circle_colliding_poly(m, c, p)
     m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
     return val
 
