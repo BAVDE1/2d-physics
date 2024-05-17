@@ -61,12 +61,6 @@ class Group:
 
             index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= l)  # points to end of layer section in list
 
-            # special case for group type of Objects, places obj before any static objects on layer
-            if self.group_type == Object:
-                start_index = index - self.layer_nums[l]
-                static_anmt = len([o for o in self.objects[start_index:index] if o.static])  # number of static objects on layer
-                index = max(index - static_anmt, start_index)  # place before any static objects on same layer
-
             self.objects.insert(index, obj)
             self.layer_nums[obj.layer] += 1
         else:
@@ -102,7 +96,7 @@ class Group:
             obj.render(screen)
 
     def __repr__(self):
-        return f'Group({len(self.objects)} objects, {len(self.layer_nums.keys())} layer/s)'
+        return f'Group(type: ({self.group_type}), objects: {len(self.objects)}, layer/s: {len(self.layer_nums.keys())})'
 
 
 class Game:
@@ -127,7 +121,7 @@ class Game:
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([pa, self.pb, o1, o2, o3, o4, g1, g2, g3])
+        self.objects_group = Group([pa, o1, o2, o3, self.pb, o4, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 

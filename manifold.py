@@ -157,7 +157,7 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
     # if center within poly
     if separation < EPSILON:
         m.contact_count = 1
-        m.normal = p.mat2.mul_vec(p.normals[v_inx]).negate()
+        m.normal = p.mat2.mul_vec(p.normals[v_inx])
         m.contact_points[0] = (m.normal * c.radius) + c.pos
         m.penetration = c.radius
         return True
@@ -173,24 +173,23 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
         if center.length_sq_other(v) > c.radius ** 2:
             return False
 
-        m.normal = p.mat2.mul_vec(v - center).normalise_self()
+        m.normal = p.mat2.mul_vec(v - center).normalise_self().negate()
         m.contact_points[0] = p.mat2.mul_vec(v) + p.pos
     else:  # face closest
         n: Vec2 = p.normals[v_inx]
         if (center - v1).dot(n) > c.radius:
             return False
 
-        m.normal = p.mat2.mul_vec(n).negate()
+        m.normal = p.mat2.mul_vec(n)
         m.contact_points[0] = c.pos + (m.normal * c.radius)
     m.contact_count = 1
     return True
 
 
 def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
-    """ Usually, the normal would be reversed here, but the objects are identified in p-coll-c, essentially making the reversal already """
-    # val = poly_colliding_circle(m, p, c)
-    # m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
-    return poly_colliding_circle(m, p, c)
+    val = poly_colliding_circle(m, p, c)
+    m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
+    return val
 
 
 def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
