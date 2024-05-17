@@ -9,12 +9,12 @@ from objects import Object, Circle, Polygon
 class Manifold:
     """ 'A collection of points that represents an area in space' """
     def __init__(self, a: Object, b: Object):
-        self.a = a
-        self.b = b
-        self.normal = Vec2(0, 0)
-        self.penetration = 0
+        self.a: Object = a
+        self.b: Object = b
+        self.normal: Vec2 = Vec2()
+        self.penetration: float = 0
 
-        self.contact_count = 0
+        self.contact_count: int = 0
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
         self.jump_table = [
@@ -110,7 +110,7 @@ def clamp(value, min_v, max_v):
     return max(min_v, min(max_v, value))
 
 
-def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle):
+def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle) -> bool:
     normal = c2.pos - c1.pos
     r = c1.radius + c2.radius
 
@@ -135,7 +135,7 @@ def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle):
     return True
 
 
-def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
+def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle) -> bool:
     # circle center into polygon model space
     center: Vec2 = p.mat2.transpose().mul_vec(c.pos - p.pos)
 
@@ -186,14 +186,14 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
     return True
 
 
-def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon):
+def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
     """ Usually, the normal would be reversed here, but the objects are identified in p-coll-c, essentially making the reversal already """
     # val = poly_colliding_circle(m, p, c)
     # m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
     return poly_colliding_circle(m, p, c)
 
 
-def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon):
+def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
     # check for penetrating faces with both a and b polygons
     face_a_inx, pen_a = find_axis_penetration(p1, p2)
     if pen_a < 0.0:

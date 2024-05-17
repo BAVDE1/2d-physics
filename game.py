@@ -29,23 +29,48 @@ def holding_object(obj: Object, mp: Vec2):
 
 
 class Group:
-    """ Group to store objects of different layers in order of lowest to highest. Optimised for retrieval of objects. """
-    def __init__(self, add_objects=None):
+    """ Group to store instances of different layers in order of lowest to highest. Optimised for retrieval of objects. """
+    def __init__(self, add_objects=None, group_type=None):
         self.layer_nums = {}  # amount of stored objects with layer x
         self.objects = []  # ordered by layers, low - high
+        self.group_type = group_type  # type strong group
 
         if add_objects is not None:
             self.add_mul(add_objects)
 
+    def set_type(self, obj):
+        """ set group type if not set """
+        if self.group_type is None:
+            self.group_type = self.get_type_of(obj)
+
+    def get_type_of(self, obj):
+        """ Returns type of object """
+        try:
+            return obj.get_type()
+        except AttributeError:
+            return type(obj)
+
     def add(self, obj):
         """ Add new layer to dict (if needed), insert object at end of objects' layer in list """
-        if obj.layer not in self.layer_nums:
-            self.layer_nums[obj.layer] = 0
+        self.set_type(obj)
 
-        index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= obj.layer)  # index points to end of layer section in list
+        if self.get_type_of(obj) == self.group_type:
+            l = obj.layer
+            if l not in self.layer_nums:
+                self.layer_nums[l] = 0
 
-        self.objects.insert(index, obj)
-        self.layer_nums[obj.layer] += 1
+            index = sum(amnt for layer, amnt in self.layer_nums.items() if layer <= l)  # points to end of layer section in list
+
+            # special case for group type of Objects, places obj before any static objects on layer
+            if self.group_type == Object:
+                start_index = index - self.layer_nums[l]
+                static_anmt = len([o for o in self.objects[start_index:index] if o.static])  # number of static objects on layer
+                index = max(index - static_anmt, start_index)  # place before any static objects on same layer
+
+            self.objects.insert(index, obj)
+            self.layer_nums[obj.layer] += 1
+        else:
+            print(f'Could not add object ({obj}) to group as it is not of the set group type ({self.group_type})')
 
     def add_mul(self, lis: list):
         for obj in lis:
@@ -102,7 +127,7 @@ class Game:
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([o1, o2, o3, o4, pa, self.pb, g1, g2, g3])
+        self.objects_group = Group([pa, self.pb, o1, o2, o3, o4, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -138,9 +163,10 @@ class Game:
                     )
 
                 for i in range(1):
-                    b = Circle(p, r)
-                    b.colour = [random.randrange(0, 255) for _ in range(3)]
-                    self.objects_group.add(b)
+                    c = Circle(p, 5)
+                    c.colour = [random.randrange(0, 255) for _ in range(3)]
+                    print(c)
+                    self.objects_group.add(c)
 
             if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
                 pass
@@ -164,11 +190,11 @@ class Game:
                 if a.should_ignore_collision(b):
                     continue
 
-                ch = Manifold(a, b)
-                ch.init_collision()
+                man = Manifold(a, b)
+                man.init_collision()
 
-                if ch.contact_count > 0:
-                    self.collisions.append(ch)
+                if man.contact_count > 0:
+                    self.collisions.append(man)
 
     def update_objects(self):
         objects = self.objects_group.objects

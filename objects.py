@@ -21,11 +21,11 @@ class Material:
 
 class Object:
     def __init__(self, pos: Vec2, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
-        self._type = 'Object'
+        self._object_type = 'Object'
         self._og_pos = pos.clone()
-        self.pos = pos
-        self.static = static
-        self.layer = layer
+        self.pos: Vec2 = pos
+        self.static: bool = static
+        self.layer: int = layer
 
         # texture
         self.colour = Colours.WHITE
@@ -40,14 +40,14 @@ class Object:
         self.orientation: float = 0  # in radians
         self.angular_velocity: Vec2 = Vec2()
         self.torque: float = 0
-        self.mat2 = Mat2(self.orientation)
+        self.mat2: Mat2 = Mat2(self.orientation)
 
         # mass
-        self.material = Material(material)
-        self.mass = 0
-        self.inv_mass = 0
-        self.inertia = 0
-        self.inv_inertia = 0
+        self.material: Material = Material(material)
+        self.mass: float = 0
+        self.inv_mass: float = 0
+        self.inertia: float = 0
+        self.inv_inertia: float = 0
 
     def apply_force(self, force: Vec2):
         """ Apply external force to object """
@@ -58,7 +58,7 @@ class Object:
         if not self.static:
             self.velocity.add_self(impulse, self.inv_mass)
 
-    def is_out_of_bounds(self, check_top=False):
+    def is_out_of_bounds(self, check_top=False) -> bool:
         """ Is object too far from screen bounds to be considered worth keeping alive """
         above = self.pos.y < 0 - Values.SCREEN_HEIGHT
         below = self.pos.y > Values.SCREEN_HEIGHT * 2
@@ -71,12 +71,13 @@ class Object:
         if self.static:
             self.velocity.set(0, 0)
 
-    def should_ignore_collision(self, b):
+    def should_ignore_collision(self, b) -> bool:
         """ Checks whether both are static OR on different layers and neither are static """
+        same_object = self == b
         both_static = self.static and b.static
         one_static = self.static or b.static
         not_on_layer = self.layer != b.layer
-        return both_static or (not_on_layer and not one_static)
+        return same_object or both_static or (not_on_layer and not one_static)
 
     def update_velocity(self, dt):
         """ Should be called twice - before updating pos and after - for each physics calculation """
@@ -94,19 +95,23 @@ class Object:
         self.update_velocity(dt)
         self.static_correction()
 
+    def get_type(self):
+        """ All objects should return of type 'Object' """
+        return Object
+
     def __repr__(self):
-        return f'{self._type}(layer: {self.layer}, pos: {self.pos})'
+        return f'{self._object_type}(static: {self.static}, layer: {self.layer}, pos: {self.pos})'
 
 
 class Circle(Object):
     def __init__(self, pos: Vec2, radius=5, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
-        self._type = 'Ball'
-        self.radius = radius
+        self._object_type = 'Circle'
+        self.radius: float = radius
 
         # lowered friction
-        self.static_friction = 0.1
-        self.dynamic_friction = 0.05
+        self.static_friction: float = 0.1
+        self.dynamic_friction: float = 0.05
 
         self.compute_mass()
 
@@ -130,7 +135,7 @@ class Polygon(Object):
 
     def __init__(self, pos: Vec2, vertices=None, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
-        self._type = 'Poly'
+        self._object_type = 'Poly'
         self.vertex_count = 0
         self.vertices: list[Vec2] = []
         self.normals: list[Vec2] = []
@@ -203,18 +208,18 @@ class Polygon(Object):
         return best_vertex
 
     def render(self, screen: pg.Surface):
-        pg.draw.rect(screen, Colours.WHITE, pg.Rect(self.pos.get(), (1, 1)))  # com
+        pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
 
         for i in range(self.vertex_count):
             p1: Vec2 = self.vertices[i] + self.pos
             p2: Vec2 = self.vertices[(i + 1) % self.vertex_count] + self.pos
 
-            pg.draw.line(screen, Colours.WHITE, p1.get(), p2.get(), 1)
+            pg.draw.line(screen, self.colour, p1.get(), p2.get(), 1)
 
 
 class SquarePoly(Polygon):
     def __init__(self, pos: Vec2, size=Vec2(1, 1), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
-        self._type = 'SquarePoly'
+        self._object_type = 'SquarePoly'
         self.pos = pos
         self.size = size
 
