@@ -13,7 +13,7 @@ class Forces:
     BIAS_RELATIVE = 0.95
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
-    GRAVITY = Vec2(0, 0)  # 100
+    GRAVITY = Vec2(0, 100)  # 100
     AIR_VELOCITY = Vec2()  # for wind or something
 
 

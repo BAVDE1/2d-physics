@@ -143,7 +143,6 @@ class Polygon(Object):
         com = Vec2()  # centre of mass
         area = 0.0
         inertia = 0.0
-
         K_INV3: float = 1 / 3
 
         for i in range(self.vertex_count):
@@ -165,7 +164,7 @@ class Polygon(Object):
             inertia += (.25 * K_INV3 * derivative) * (intx2 + inty2)
 
         com *= 1 / area
-        self.pos = self._og_pos + com
+        self.pos = self._og_pos + com  # move pos to com
 
         # translate vertices to centroid (centroid 0, 0)
         for i in range(self.vertex_count):
@@ -213,23 +212,20 @@ class Polygon(Object):
             pg.draw.line(screen, Colours.WHITE, p1.get(), p2.get(), 1)
 
 
-# class Square(Object):
-#     def __init__(self, pos: Vec2, size: Vec2 = Vec2(10, 10), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
-#         super().__init__(pos, static, material, layer)
-#         self._type = 'Box'
-#         self.size = size
-#
-#         self.compute_mass()
-#
-#     @property
-#     def lower_pos(self):
-#         return self.pos + self.size
-#
-#     def compute_mass(self):
-#         mass = self.material.density * self.size.x * self.size.y
-#         self.mass = Forces.INF_MASS if self.static else mass
-#         self.inv_mass = 0 if self.static else 1 / self.mass
-#
-#     def render(self, screen: pg.Surface):
-#         pg.draw.line(screen, self.colour, self.pos.get(), (self.lower_pos - 1).get())
-#         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), self.size.get()), 1)
+class SquarePoly(Polygon):
+    def __init__(self, pos: Vec2, size=Vec2(1, 1), static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
+        self._type = 'SquarePoly'
+        self.pos = pos
+        self.size = size
+
+        vertices = self.generate_vertices()
+        super().__init__(pos, vertices, static, material, layer)
+
+    def generate_vertices(self) -> list[Vec2]:
+        """ Applies normals to size before adding to pos """
+        return [
+            Vec2(),
+            self.size * Vec2(1, 0),
+            self.size * Vec2(1, 1),
+            self.size * Vec2(0, 1)
+        ]

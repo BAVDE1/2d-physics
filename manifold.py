@@ -59,7 +59,7 @@ class Manifold:
         j_vec /= inv_masses
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
-        j_vec += (self.a.mass + self.b.mass) * self.penetration
+        # j_vec += (self.a.mass + self.b.mass) * self.penetration
 
         # normal application of impulse (backward cause pygame)
         impulse: Vec2 = j_vec * self.normal
@@ -151,8 +151,8 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
 
     # face vertices
     v1: Vec2 = p.vertices[v_inx]
-    v_inx = (v_inx + 1) % p.vertex_count  # next face
-    v2: Vec2 = p.vertices[v_inx]
+    v_inx2 = (v_inx + 1) % p.vertex_count  # next face
+    v2: Vec2 = p.vertices[v_inx2]
 
     # if center within poly
     if separation < EPSILON:
@@ -167,19 +167,14 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
     dot2: float = (center - v2).dot(v1 - v2)
     m.penetration = c.radius - separation
 
-    # v1 closest
-    if dot1 <= 0:
-        if center.length_sq_other(v1) > c.radius ** 2:
+    # get vertex furthest within c, or None if face should be used
+    v: Vec2 = v1 if dot1 <= 0 else v2 if dot2 <= 0 else None
+    if v is not None:
+        if center.length_sq_other(v) > c.radius ** 2:
             return False
 
-        m.normal = p.mat2.mul_vec(v1 - center).normalise_self()
-        m.contact_points[0] = p.mat2.mul_vec(v1) + p.pos
-    elif dot2 <= 0:  # v2 closest
-        if center.length_sq_other(v2) > c.radius ** 2:
-            return False
-
-        m.normal = p.mat2.mul_vec(v2 - center).normalise_self()
-        m.contact_points[0] = p.mat2.mul_vec(v2) + p.pos
+        m.normal = p.mat2.mul_vec(v - center).normalise_self()
+        m.contact_points[0] = p.mat2.mul_vec(v) + p.pos
     else:  # face closest
         n: Vec2 = p.normals[v_inx]
         if (center - v1).dot(n) > c.radius:
@@ -192,9 +187,10 @@ def poly_colliding_circle(m: Manifold, p: Polygon, c: Circle):
 
 
 def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon):
-    val = poly_colliding_circle(m, p, c)
-    m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
-    return val
+    """ Usually, the normal would be reversed here, but the objects are identified in p-coll-c, essentially making the reversal already """
+    # val = poly_colliding_circle(m, p, c)
+    # m.normal.negate_self()  # reverse the normal (for the love of god do not forget this step)
+    return poly_colliding_circle(m, p, c)
 
 
 def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon):

@@ -4,7 +4,7 @@ from constants import *
 
 from manifold import Manifold
 from water import Water
-from objects import Object, Circle, Polygon
+from objects import Object, Circle, Polygon, SquarePoly
 from Vec2 import Vec2
 from particle import Particle
 
@@ -91,23 +91,18 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.o1 = Circle(Vec2(10, 60), 7)
-        self.o2 = Circle(Vec2(60, 60))
-        self.o3 = Circle(Vec2(200, 30), 10)
-        self.o4 = Circle(Vec2(120, 100), 20)
-        self.pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15), Vec2(0, 15)])
+        o1 = Circle(Vec2(10, 60), 7)
+        o2 = Circle(Vec2(60, 60))
+        o3 = Circle(Vec2(200, 30), 10)
+        o4 = Circle(Vec2(120, 100), 20)
+        pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15), Vec2(0, 15)])
         self.pb = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
 
-        # self.o5 = Square(Vec2(150, 60))
-        # self.o6 = Square(Vec2(155, 80), Vec2(10, 15))
+        g1 = SquarePoly(Vec2(50, 160), size=Vec2(200, 10), static=True)
+        g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
+        g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        # self.o4.velocity.set(50, -55)
-
-        # self.g1 = Square(Vec2(50, 160), size=Vec2(200, 10), static=True)
-        # self.g2 = Square(Vec2(50, 75), size=Vec2(10, 100), static=True)
-        # self.g3 = Square(Vec2(250, 75), size=Vec2(10, 100), static=True)
-
-        self.objects_group = Group([self.o1, self.o2, self.o3, self.o4, self.pa, self.pb])
+        self.objects_group = Group([o1, o2, o3, o4, pa, self.pb, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
