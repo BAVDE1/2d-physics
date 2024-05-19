@@ -14,13 +14,13 @@ def get_mp():
     return Vec2(*pg.mouse.get_pos()) / Values.RES_MUL
 
 
-def holding_object(obj: Object, mp: Vec2):
+def hold_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
     # if isinstance(obj, Polygon):
     #     mp -= obj.size / 2  # middle of box
 
     max_f = Vec2(40, 40)
-    force = Vec2(mp.x - obj.pos.x, mp.y - obj.pos.y) * Values.FPS / 60
+    force = (mp - obj.pos) * Values.FPS / 60
     force.clamp_self(-max_f, max_f)
     force *= obj.mass
 
@@ -45,10 +45,9 @@ class Group:
 
     def get_type_of(self, obj):
         """ Returns type of object """
-        try:
+        if hasattr(obj, 'get_type'):
             return obj.get_type()
-        except AttributeError:
-            return type(obj)
+        return type(obj)
 
     def add(self, obj):
         """ Add new layer to dict (if needed), insert object at end of objects' layer in list """
@@ -64,7 +63,7 @@ class Group:
             self.objects.insert(index, obj)
             self.layer_nums[obj.layer] += 1
         else:
-            print(f'Could not add object ({obj}) to group as it is not of the set group type ({self.group_type})')
+            print(f'WARN: Could not add object "{obj}" to group of a different group type: "{self.group_type}"')
 
     def add_mul(self, lis: list):
         for obj in lis:
@@ -110,18 +109,19 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        o1 = Circle(Vec2(10, 60), 7)
+        self.holding_obj: Object | None = None
+        o1 = Circle(Vec2(90, 60), 7)
         o2 = Circle(Vec2(60, 60))
         o3 = Circle(Vec2(200, 30), 10)
         o4 = Circle(Vec2(120, 100), 20)
-        pa = Polygon(Vec2(120, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15), Vec2(0, 15)])
-        self.pb = Polygon(Vec2(10, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
+        pa = Polygon(Vec2(125, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 20), Vec2(0, 15)])
+        pb = Polygon(Vec2(100, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
 
         g1 = SquarePoly(Vec2(50, 160), size=Vec2(200, 10), static=True)
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([pa, o1, o2, o3, self.pb, o4, g1, g2, g3])
+        self.objects_group = Group([pa, o1, o2, o3, pb, o4, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -147,7 +147,7 @@ class Game:
                 self.keys = pg.key.get_pressed()
 
             # mouse
-            if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
+            if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[2]:
                 r = 5
                 p = self.mp.clone()
                 p.y -= r + 10
@@ -227,7 +227,8 @@ class Game:
             part.update(Values.DT)
 
     def update(self):
-        holding_object(self.pb, self.mp)
+        if self.holding_obj is not None:
+            hold_object(self.holding_obj, self.mp)
 
         self.water.update()
 

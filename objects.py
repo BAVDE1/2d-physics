@@ -151,22 +151,21 @@ class Polygon(Object):
         K_INV3: float = 1 / 3
 
         for i in range(self.vertex_count):
-            p1: Vec2 = self.vertices[i]
-            p2: Vec2 = self.vertices[(i + 1) % self.vertex_count]  # loop back to 0 if exceeding v count
+            v1: Vec2 = self.vertices[i]
+            v2: Vec2 = self.vertices[(i + 1) % self.vertex_count]  # loop back to 0 if exceeding v count
 
-            derivative: float = p1.cross_vec(p2)
-            tri_area = 0.5 * derivative
-
+            sq_area: float = v1.cross_vec(v2)
+            tri_area = 0.5 * sq_area
             area += tri_area
 
             # Use area to weight the centroid average, not just vertex position
             weight: float = tri_area * K_INV3
-            com.add_self(p1, weight)
-            com.add_self(p2, weight)
+            com.add_self(v1, weight)
+            com.add_self(v2, weight)
 
-            intx2: float = (p1.x ** 2) + (p2.x * p1.x) + (p2.x ** 2)
-            inty2: float = (p1.y ** 2) + (p2.y * p1.y) + (p2.y ** 2)
-            inertia += (.25 * K_INV3 * derivative) * (intx2 + inty2)
+            intx2: float = (v1.x ** 2) + (v2.x * v1.x) + (v2.x ** 2)
+            inty2: float = (v1.y ** 2) + (v2.y * v1.y) + (v2.y ** 2)
+            inertia += (.25 * K_INV3 * sq_area) * (intx2 + inty2)
 
         com *= 1 / area
         self.pos = self._og_pos + com  # move pos to com
