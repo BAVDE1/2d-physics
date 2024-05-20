@@ -4,7 +4,6 @@ import sys
 from constants import *
 from Vec2 import Vec2
 
-
 DEF_STATIC = False
 DEF_MAT = Materials.TESTING
 DEF_LAYER = 10
@@ -95,6 +94,9 @@ class Object:
         self.update_velocity(dt)
         self.static_correction()
 
+    def is_point_in_obj(self, p: Vec2):
+        return False
+
     def get_type(self):
         """ All objects should return of type 'Object' """
         return Object
@@ -122,6 +124,10 @@ class Circle(Object):
 
         self.inertia = self.mass * self.radius * self.radius
         self.inv_inertia = 0 if self.static else 1 / self.inertia
+
+    def is_point_in_obj(self, p: Vec2):
+        dist = (p - self.pos).length()
+        return dist < self.radius
 
     def render(self, screen: pg.Surface):
         pg.draw.line(screen, self.colour,
@@ -188,7 +194,7 @@ class Polygon(Object):
         for i in range(self.vertex_count):
             face: Vec2 = self.vertices[(i + 1) % self.vertex_count] - self.vertices[i]
 
-            normal = Vec2(face.y, -face.x)   # calculate normal with 2D cross product between vector and scalar
+            normal = Vec2(face.y, -face.x)  # calculate normal with 2D cross product between vector and scalar
             self.normals.append(normal.normalise_self())
 
         self.compute_mass()
@@ -205,6 +211,50 @@ class Polygon(Object):
                 best_projection = proj
                 best_vertex = v
         return best_vertex
+
+    def is_point_in_obj(self, p1: Vec2):
+        """
+        Checks whether a point is within the polygon.
+        Ray casts in direction from p1, if no. faces passed though is odd, return true
+        """
+        intersections = 0
+        p2: Vec2 = Vec2(0, p1.y)
+
+        def on_segment(a, b, c):
+            """ checks if point b lies on line segment 'ac' """
+            return ((b.x <= max(a.x, c.x)) and (b.x >= min(a.x, c.x)) and
+                    (b.y <= max(a.y, c.y)) and (b.y >= min(a.y, c.y)))
+
+        def get_orient(a, b, c):
+            """ find the orientation of an ordered triplet """
+            orient = ((b.y - a.y) * (c.x - b.x)) - ((b.x - a.x) * (c.y - b.y))
+            if orient > 0:  # clockwise
+                return 1
+            elif orient < 0:  # counter-clockwise
+                return 2
+            return 0  # collinear
+
+        for i in range(self.vertex_count):
+            v1: Vec2 = self.vertices[i] + self.pos
+            v2: Vec2 = self.vertices[(i + 1) % self.vertex_count] + self.pos
+
+            o1 = get_orient(p1, p2, v1)
+            o2 = get_orient(p1, p2, v2)
+            o3 = get_orient(v1, v2, p1)
+            o4 = get_orient(v1, v2, p2)
+
+            # normal case
+            if (o1 != o2) and (o3 != o4):
+                intersections += 1
+                continue
+
+            # collinear case
+            if (((o1 == 0) and on_segment(p1, v1, p2)) or
+                    (o2 == 0) and on_segment(p1, v2, p2) or
+                    (o3 == 0) and on_segment(v1, p1, v2) or
+                    (o4 == 0) and on_segment(v1, p2, v2)):
+                intersections += 1
+        return bool(intersections % 2)
 
     def render(self, screen: pg.Surface):
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com

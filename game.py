@@ -102,6 +102,7 @@ class Game:
     def __init__(self):
         self.running = True
         self.keys = pg.key.get_pressed()
+        self.m_keys = pg.mouse.get_pressed()
         self.resolve_iterations = 8  # higher = more stable but less performant
         self.mp = get_mp()
 
@@ -147,27 +148,51 @@ class Game:
                 self.keys = pg.key.get_pressed()
 
             # mouse
-            if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[2]:
-                r = 5
-                p = self.mp.clone()
-                p.y -= r + 10
-                for _ in range(8):
-                    self.particles_group.add(
-                        Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)), colour=[random.randrange(0, 255) for _ in range(3)], lifetime=random.random() + 0.4)
-                    )
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if pg.mouse.get_pressed()[0] and not self.m_keys[0]:
+                    self.mouse_l_down()
+                if pg.mouse.get_pressed()[2] and not self.m_keys[2]:
+                    self.mouse_r_down()
+                self.m_keys = pg.mouse.get_pressed()
 
-                for i in range(1):
-                    c = Circle(p, 5)
-                    c.colour = [random.randrange(0, 255) for _ in range(3)]
-                    print(c)
-                    self.objects_group.add(c)
-
-            if event.type == pg.MOUSEBUTTONUP and not pg.mouse.get_pressed()[0]:
-                pass
+            if event.type == pg.MOUSEBUTTONUP:
+                if not pg.mouse.get_pressed()[0] and self.m_keys[0]:
+                    self.mouse_l_up()
+                if not pg.mouse.get_pressed()[2] and self.m_keys[2]:
+                    self.mouse_r_up()
+                self.m_keys = pg.mouse.get_pressed()
 
             # close game
             if event.type == pg.QUIT or self.keys[pg.K_ESCAPE]:
                 self.running = False
+
+    def mouse_r_down(self):
+        r = 5
+        p = self.mp.clone()
+        p.y -= r + 10
+        for _ in range(8):
+            self.particles_group.add(
+                Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)),
+                         colour=[random.randrange(0, 255) for _ in range(3)], lifetime=random.random() + 0.4)
+            )
+
+        for i in range(1):
+            c = Circle(p, 5)
+            c.colour = [random.randrange(0, 255) for _ in range(3)]
+            print(c)
+            self.objects_group.add(c)
+
+    def mouse_r_up(self):
+        pass
+
+    def mouse_l_down(self):
+        for obj in self.objects_group.objects:
+            if not obj.static and obj.is_point_in_obj(self.mp):
+                self.holding_obj = obj
+                break
+
+    def mouse_l_up(self):
+        self.holding_obj = None
 
     def rotate_screen_blit(self, image, angle, pos: Vec2):
         """ Temporary """

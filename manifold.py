@@ -151,8 +151,7 @@ def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
 
     # face vertices
     v1: Vec2 = p.vertices[v_inx]
-    v_inx2 = (v_inx + 1) % p.vertex_count  # next face
-    v2: Vec2 = p.vertices[v_inx2]
+    v2: Vec2 = p.vertices[(v_inx + 1) % p.vertex_count]  # next face
 
     # if center within poly
     if separation < EPSILON:
@@ -305,8 +304,8 @@ def find_incident_face(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tu
 
     # Assign face vertices for incident faces (transformed into world space by adding pos)
     face1: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face]) + inc_poly.pos
-    inc_face = (inc_face + 1) % inc_poly.vertex_count  # next face
-    face2: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face]) + inc_poly.pos
+    inc_face_2 = (inc_face + 1) % inc_poly.vertex_count  # next face
+    face2: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face_2]) + inc_poly.pos
     return face1, face2
 
 
@@ -315,8 +314,8 @@ def find_reference_face(ref_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
     # Assign face vertices for ref faces
     # "x_poly.vertices[x_inx]" is model space, add poly pos to be world space
     face1: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx]) + ref_poly.pos
-    ref_inx = (ref_inx + 1) % ref_poly.vertex_count  # next face
-    face2: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx]) + ref_poly.pos
+    ref_inx_2 = (ref_inx + 1) % ref_poly.vertex_count  # next face
+    face2: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx_2]) + ref_poly.pos
     return face1, face2
 
 
