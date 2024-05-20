@@ -179,7 +179,6 @@ class Game:
         for i in range(1):
             c = Circle(p, 5)
             c.colour = [random.randrange(0, 255) for _ in range(3)]
-            print(c)
             self.objects_group.add(c)
 
     def mouse_r_up(self):
@@ -210,7 +209,7 @@ class Game:
                     continue
 
                 man = Manifold(a, b)
-                man.init_collision()
+                man.solve_collision()
 
                 if man.contact_count > 0:
                     self.collisions.append(man)
@@ -224,6 +223,9 @@ class Game:
         # apply left-over velocity
         for obj in objects:
             obj.update_velocity(Values.DT)
+
+        for coll in self.collisions:
+            coll.init_collision()
 
         # resolve collisions, apply impulses
         for it in range(self.resolve_iterations):

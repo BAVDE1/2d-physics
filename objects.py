@@ -37,7 +37,7 @@ class Object:
 
         # angular properties
         self.orientation: float = 0  # in radians
-        self.angular_velocity: Vec2 = Vec2()
+        self.angular_velocity: float = 0
         self.torque: float = 0
         self.mat2: Mat2 = Mat2(self.orientation)
 
@@ -56,6 +56,7 @@ class Object:
         """ Apply given impulse to self (multiplied by inv_mass) """
         if not self.static:
             self.velocity.add_self(impulse, self.inv_mass)
+            # self.angular_velocity += self.inv_inertia * contact_vec.cross_vec(impulse)
 
     def is_out_of_bounds(self, check_top=False) -> bool:
         """ Is object too far from screen bounds to be considered worth keeping alive """

@@ -14,6 +14,10 @@ class Manifold:
         self.normal: Vec2 = Vec2()
         self.penetration: float = 0
 
+        self.e: float = 0  # coefficient of restitution
+        self.sf: float = 0  # static friction
+        self.df: float = 0  # dynamix friction
+
         self.contact_count: int = 0
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
@@ -22,7 +26,7 @@ class Manifold:
             [circle_colliding_poly, circle_colliding_circle]
         ]
 
-    def init_collision(self):
+    def solve_collision(self):
         """
         Fills necessary values of this class (normal, pen, contact points) depending upon the types of Objects that are colliding
         """
@@ -32,6 +36,10 @@ class Manifold:
         # execute collision function
         self.jump_table[a][b](self, self.a, self.b)
 
+    def init_collision(self):
+        """ Fill more necessary values before applying impulses """
+        e = min(self.a.material.restitution, self.b.material.restitution)
+
     def resolve_collision(self):
         """ Apply impulse on colliding objects to solve collisions """
         if not self.contact_count:
@@ -40,29 +48,32 @@ class Manifold:
         # relative values
         ra: Vec2 = self.contact_points[0] - self.a.pos
         rb: Vec2 = self.contact_points[1] - self.b.pos
-        rv: Vec2 = self.b.velocity - self.a.velocity
+        rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
 
         contact_vel = rv.dot(self.normal)
         if contact_vel > 0:  # separating, do not collide
             return
 
-        inv_masses = self.a.inv_mass + self.b.inv_mass
+        ra_cross_n: float = ra.cross_vec(self.normal)
+        rb_cross_n: float = rb.cross_vec(self.normal)
+        inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
-        e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
-        is_resting = rv.y ** 2 < Values.RESTING
-        e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
+        # e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
+        # is_resting = rv.y ** 2 < Values.RESTING
+        # e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
 
-        j: float = -(e + 1) * contact_vel
+        j: float = -(1 + self.e) * contact_vel
         j /= inv_masses
-        rebound_dir_vec: Vec2 = -(e_vec + 1)
-        j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
-        j_vec /= inv_masses
+        j /= self.contact_count
+        # rebound_dir_vec: Vec2 = -(e_vec + 1)
+        # j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
+        # j_vec /= inv_masses
 
         # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
         # j_vec += (self.a.mass + self.b.mass) * self.penetration
 
         # normal application of impulse (backward cause pygame)
-        impulse: Vec2 = j_vec * self.normal
+        impulse: Vec2 = self.normal * j
         self.a.apply_impulse(impulse.negate(), ra)
         self.b.apply_impulse(impulse, rb)
 
@@ -73,6 +84,7 @@ class Manifold:
 
         jt: float = -rv.dot(t)  # impulse tangent
         jt /= inv_masses
+        jt /= self.contact_count
 
         if jt != 0:
             sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
