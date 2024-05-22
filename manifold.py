@@ -272,7 +272,7 @@ def find_axis_penetration(a: Polygon, b: Polygon) -> tuple[int, float]:
         support: Vec2 = b.get_support(n.negate())
 
         # transform support vertex into b's model space
-        vert: Vec2 = (a.mat2.mul_vec(a.vertices[i]) + a.pos) - b.pos
+        vert: Vec2 = (a.get_oriented_vert(i)) - b.pos
         vert: Vec2 = b_mat.mul_vec(vert)
 
         # distance of penetration
@@ -308,9 +308,8 @@ def find_incident_face_vertices(ref_poly: Polygon, inc_poly: Polygon, ref_inx: i
 
 def find_face_vertices(poly: Polygon, inx: int) -> tuple[Vec2, Vec2]:
     """ Returns the 2 face vertices on poly from inx given. transformed into world space """
-    vert1: Vec2 = poly.mat2.mul_vec(poly.vertices[inx]) + poly.pos
-    inx_2 = (inx + 1) % poly.vertex_count  # next face
-    vert2: Vec2 = poly.mat2.mul_vec(poly.vertices[inx_2]) + poly.pos
+    vert1: Vec2 = poly.get_oriented_vert(inx)
+    vert2: Vec2 = poly.get_oriented_vert((inx + 1) % poly.vertex_count)
     return vert1, vert2
 
 

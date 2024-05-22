@@ -64,12 +64,6 @@ class Vec2:
             self.x = vec.x
             self.y = vec.y
 
-    def add_self(self, vec: Self, val: float):
-        """ Multiply vec by val and add it to instance (in place) """
-        if isinstance(vec, Vec2):
-            self.x += vec.x * val
-            self.y += vec.y * val
-
     def negate(self) -> Self:
         """ Return new vector as a negative of self """
         return Vec2(-self.x, -self.y)

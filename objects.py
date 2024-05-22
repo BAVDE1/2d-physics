@@ -55,23 +55,28 @@ class Object:
     def apply_impulse(self, impulse: Vec2, contact_vec: Vec2):
         """ Apply given impulse to self (multiplied by inv_mass) """
         if not self.static:
-            self.velocity.add_self(impulse, self.inv_mass)
+            self.velocity += impulse * self.inv_mass
             self.angular_velocity += self.inv_inertia * contact_vec.cross_vec(impulse)
 
     def update_velocity(self, dt):
         """ Should be called twice - before updating pos and after - for each physics calculation """
         if not self.static:
             dt_h = dt * 0.5
-            self.velocity.add_self(self.force, dt_h)  # external force
+            self.velocity += self.force * dt_h  # external force
 
-            self.velocity.add_self(Forces.GRAVITY, dt_h)
-            self.velocity.add_self(Forces.AIR_VELOCITY, dt_h)
+            self.velocity += Forces.GRAVITY * dt_h
+            self.velocity += Forces.AIR_VELOCITY * dt_h
+
+            self.angular_velocity += self.torque * self.inv_inertia * dt_h
+
+    def set_mat2(self):
+        pass
 
     def update(self, dt):
         """ See README on better dt """
         self.pos += self.velocity * dt
         self.orientation += self.angular_velocity * dt
-        self.mat2.set_rad(self.orientation)
+        self.set_mat2()
 
         self.update_velocity(dt)
         self.static_correction()
@@ -171,8 +176,8 @@ class Polygon(Object):
 
             # Use area to weight the centroid average, not just vertex position
             weight: float = tri_area * K_INV3
-            com.add_self(v1, weight)
-            com.add_self(v2, weight)
+            com += v1 * weight
+            com += v2 * weight
 
             intx2: float = (v1.x ** 2) + (v2.x * v1.x) + (v2.x ** 2)
             inty2: float = (v1.y ** 2) + (v2.y * v1.y) + (v2.y ** 2)
@@ -265,6 +270,9 @@ class Polygon(Object):
     def get_oriented_vert(self, index: int) -> Vec2:
         """ Returns vertice at given index rotated to poly's mat2 in world space """
         return self.mat2.mul_vec(self.vertices[index]) + self.pos
+
+    def set_mat2(self):
+        self.mat2.set_rad(self.orientation)
 
     def render(self, screen: pg.Surface):
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
