@@ -224,9 +224,6 @@ class Game:
         for obj in objects:
             obj.update_velocity(Values.DT)
 
-        for coll in self.collisions:
-            coll.init_collision()
-
         # resolve collisions, apply impulses
         for it in range(self.resolve_iterations):
             for coll in self.collisions:

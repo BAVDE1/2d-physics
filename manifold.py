@@ -14,10 +14,6 @@ class Manifold:
         self.normal: Vec2 = Vec2()
         self.penetration: float = 0
 
-        self.e: float = 0  # coefficient of restitution
-        self.sf: float = 0  # static friction
-        self.df: float = 0  # dynamix friction
-
         self.contact_count: int = 0
         self.contact_points: list[Vec2] = [Vec2(), Vec2()]
 
@@ -36,68 +32,62 @@ class Manifold:
         # execute collision function
         self.jump_table[a][b](self, self.a, self.b)
 
-    def init_collision(self):
-        """ Fill more necessary values before applying impulses """
-        e = min(self.a.material.restitution, self.b.material.restitution)
-
     def resolve_collision(self):
         """ Apply impulse on colliding objects to solve collisions """
         if not self.contact_count:
             return
 
-        # relative values
-        ra: Vec2 = self.contact_points[0] - self.a.pos
-        rb: Vec2 = self.contact_points[1] - self.b.pos
-        rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
+        for coll_count in range(self.contact_count):
+            # relative values
+            ra: Vec2 = self.contact_points[coll_count] - self.a.pos
+            rb: Vec2 = self.contact_points[coll_count] - self.b.pos
+            rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
 
-        contact_vel = rv.dot(self.normal)
-        if contact_vel > 0:  # separating, do not collide
-            return
+            contact_vel = rv.dot(self.normal)
+            if contact_vel > 0:  # separating, do not collide
+                return
 
-        ra_cross_n: float = ra.cross_vec(self.normal)
-        rb_cross_n: float = rb.cross_vec(self.normal)
-        inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
+            ra_cross_n: float = ra.cross_vec(self.normal)
+            rb_cross_n: float = rb.cross_vec(self.normal)
+            inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
-        # e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
-        # is_resting = rv.y ** 2 < Values.RESTING
-        # e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
+            e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
+            is_resting = rv.y ** 2 < Values.RESTING
+            e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
 
-        j: float = -(1 + self.e) * contact_vel
-        j /= inv_masses
-        j /= self.contact_count
-        # rebound_dir_vec: Vec2 = -(e_vec + 1)
-        # j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
-        # j_vec /= inv_masses
+            j: float = -(1 + e) * contact_vel
+            j /= inv_masses
+            j /= self.contact_count
+            rebound_dir_vec: Vec2 = -(e_vec + 1)
+            j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
+            j_vec /= inv_masses
 
-        # if object is getting squished between a static, or high mass object, penetration will be high, raise scalar
-        # j_vec += (self.a.mass + self.b.mass) * self.penetration
+            # normal application of impulse (backward cause pygame)
+            impulse: Vec2 = self.normal * j_vec
+            self.a.apply_impulse(impulse.negate(), ra)
+            self.b.apply_impulse(impulse, rb)
 
-        # normal application of impulse (backward cause pygame)
-        impulse: Vec2 = self.normal * j
-        self.a.apply_impulse(impulse.negate(), ra)
-        self.b.apply_impulse(impulse, rb)
+            # FRICTION IMPULSE
+            t: Vec2 = rv  # tangent
+            t += self.normal * -rv.dot(self.normal)
+            t.normalise_self()
 
-        # FRICTION IMPULSE
-        t: Vec2 = rv  # tangent
-        t += self.normal * -rv.dot(self.normal)
-        t.normalise_self()
+            jt: float = -rv.dot(t)  # impulse tangent
+            jt /= inv_masses
+            jt /= self.contact_count
 
-        jt: float = -rv.dot(t)  # impulse tangent
-        jt /= inv_masses
-        jt /= self.contact_count
+            if jt != 0:
+                sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
 
-        if jt != 0:
-            sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
+                # Coulumb's law
+                if abs(jt) < j * sf:  # assumed at rest
+                    t_impulse = t * jt
+                else:  # already moving (energy of activation broken, less friction required)
+                    df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
+                    t_impulse = (t * j) * -df
 
-            # Coulumb's law
-            if abs(jt) < j * sf:  # assumed at rest
-                t_impulse = t * jt
-            else:  # already moving (energy of activation broken, less friction required)
-                df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
-                t_impulse = (t * j) * -df
-
-            self.a.apply_impulse(t_impulse.negate(), ra)
-            self.b.apply_impulse(t_impulse, rb)
+                self.a.apply_impulse(t_impulse.negate(), ra)
+                self.b.apply_impulse(t_impulse, rb)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
@@ -220,10 +210,10 @@ def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
             # get face vertices (in world space)
             inc_v1: Vec2
             inc_v2: Vec2
-            inc_v1, inc_v2 = find_incident_face(ref_poly, inc_poly, ref_inx)
+            inc_v1, inc_v2 = find_incident_face_vertices(ref_poly, inc_poly, ref_inx)
             ref_v1: Vec2
             ref_v2: Vec2
-            ref_v1, ref_v2 = find_reference_face(ref_poly, ref_inx)
+            ref_v1, ref_v2 = find_face_vertices(ref_poly, ref_inx)
 
             side_plane_norm: Vec2 = (ref_v2 - ref_v1).normalise_self()
             ref_face_norm: Vec2 = Vec2(side_plane_norm.y, -side_plane_norm.x)  # orthogonal
@@ -234,10 +224,10 @@ def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
             pos_side: float = side_plane_norm.dot(ref_v2)
 
             # Clip incident face to reference face side planes
-            inc_v1, inc_v2, sp = clip(side_plane_norm.negate(), neg_side, inc_v1, inc_v2)
+            inc_v1, inc_v2, sp = clip_faces(side_plane_norm.negate(), neg_side, inc_v1, inc_v2)
             if sp < 2:
                 return False
-            inc_v1, inc_v2, sp = clip(side_plane_norm, pos_side, inc_v1, inc_v2)
+            inc_v1, inc_v2, sp = clip_faces(side_plane_norm, pos_side, inc_v1, inc_v2)
             if sp < 2:
                 return False
 
@@ -296,7 +286,7 @@ def find_axis_penetration(a: Polygon, b: Polygon) -> tuple[int, float]:
     return best_inx, best_dist
 
 
-def find_incident_face(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
+def find_incident_face_vertices(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
     """ Returns face vertices on incident poly in world space """
     ref_norm: Vec2 = ref_poly.normals[ref_inx]
 
@@ -313,27 +303,20 @@ def find_incident_face(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tu
         if dot < min_dot:
             min_dot = dot
             inc_face = i
-
-    # Assign face vertices for incident faces (transformed into world space by adding pos)
-    face1: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face]) + inc_poly.pos
-    inc_face_2 = (inc_face + 1) % inc_poly.vertex_count  # next face
-    face2: Vec2 = inc_poly.mat2.mul_vec(inc_poly.vertices[inc_face_2]) + inc_poly.pos
-    return face1, face2
+    return find_face_vertices(inc_poly, inc_face)
 
 
-def find_reference_face(ref_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:
-    """ Returns face vertices on reference poly in world space """
-    # Assign face vertices for ref faces
-    # "x_poly.vertices[x_inx]" is model space, add poly pos to be world space
-    face1: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx]) + ref_poly.pos
-    ref_inx_2 = (ref_inx + 1) % ref_poly.vertex_count  # next face
-    face2: Vec2 = ref_poly.mat2.mul_vec(ref_poly.vertices[ref_inx_2]) + ref_poly.pos
-    return face1, face2
+def find_face_vertices(poly: Polygon, inx: int) -> tuple[Vec2, Vec2]:
+    """ Returns the 2 face vertices on poly from inx given. transformed into world space """
+    vert1: Vec2 = poly.mat2.mul_vec(poly.vertices[inx]) + poly.pos
+    inx_2 = (inx + 1) % poly.vertex_count  # next face
+    vert2: Vec2 = poly.mat2.mul_vec(poly.vertices[inx_2]) + poly.pos
+    return vert1, vert2
 
 
-def clip(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec2, Vec2, int]:
-    """ Clip down the given faces to side length """
-    i: int = 0
+def clip_faces(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec2, Vec2, int]:
+    """ Clip down the given faces to side length. Returns faces & no. clips made """
+    clip_no: int = 0
     faces = [inc_face1.clone(), inc_face2.clone()]
 
     # Retrieve distances from each endpoint to the line
@@ -342,17 +325,17 @@ def clip(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tuple[Vec
 
     # If negative (behind plane) clip
     if d1 <= 0:
-        faces[i] = inc_face1.clone()
-        i += 1
+        faces[clip_no] = inc_face1.clone()
+        clip_no += 1
     if d2 <= 0:
-        faces[i] = inc_face2.clone()
-        i += 1
+        faces[clip_no] = inc_face2.clone()
+        clip_no += 1
 
     # If the points are on different sides of the plane
     if d1 * d2 < 0:
         alpha: float = d1 / (d2 - d1)
-        faces[i] = (inc_face1 - inc_face2) * alpha
-        faces[i] += inc_face1
-        i += 1
+        faces[clip_no] = (inc_face1 - inc_face2) * alpha
+        faces[clip_no] += inc_face1
+        clip_no += 1
 
-    return faces[0], faces[1], i
+    return faces[0], faces[1], clip_no

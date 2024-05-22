@@ -56,28 +56,7 @@ class Object:
         """ Apply given impulse to self (multiplied by inv_mass) """
         if not self.static:
             self.velocity.add_self(impulse, self.inv_mass)
-            # self.angular_velocity += self.inv_inertia * contact_vec.cross_vec(impulse)
-
-    def is_out_of_bounds(self, check_top=False) -> bool:
-        """ Is object too far from screen bounds to be considered worth keeping alive """
-        above = self.pos.y < 0 - Values.SCREEN_HEIGHT
-        below = self.pos.y > Values.SCREEN_HEIGHT * 2
-        left = self.pos.x < 0 - Values.SCREEN_WIDTH
-        right = self.pos.x > Values.SCREEN_WIDTH * 2
-        return below or left or right or (check_top and above)
-
-    def static_correction(self):
-        """ Reset velocity on static objects """
-        if self.static:
-            self.velocity.set(0, 0)
-
-    def should_ignore_collision(self, b) -> bool:
-        """ Checks whether both are static OR on different layers and neither are static """
-        same_object = self == b
-        both_static = self.static and b.static
-        one_static = self.static or b.static
-        not_on_layer = self.layer != b.layer
-        return same_object or both_static or (not_on_layer and not one_static)
+            self.angular_velocity += self.inv_inertia * contact_vec.cross_vec(impulse)
 
     def update_velocity(self, dt):
         """ Should be called twice - before updating pos and after - for each physics calculation """
@@ -91,12 +70,37 @@ class Object:
     def update(self, dt):
         """ See README on better dt """
         self.pos += self.velocity * dt
+        self.orientation += self.angular_velocity * dt
+        self.mat2.set_rad(self.orientation)
 
         self.update_velocity(dt)
         self.static_correction()
 
     def is_point_in_obj(self, p: Vec2):
         return False
+
+    def is_out_of_bounds(self, check_top=False) -> bool:
+        """ Is object too far from screen bounds to be considered worth keeping alive """
+        above = self.pos.y < 0 - Values.SCREEN_HEIGHT
+        below = self.pos.y > Values.SCREEN_HEIGHT * 2
+        left = self.pos.x < 0 - Values.SCREEN_WIDTH
+        right = self.pos.x > Values.SCREEN_WIDTH * 2
+        return below or left or right or (check_top and above)
+
+    def static_correction(self):
+        """ Reset velocity on static objects """
+        if self.static:
+            self.velocity.set(0, 0)
+            self.angular_velocity = 0
+            self.mat2.set_rad(0)
+
+    def should_ignore_collision(self, b) -> bool:
+        """ Checks whether both are static OR on different layers and neither are static """
+        same_object = self == b
+        both_static = self.static and b.static
+        one_static = self.static or b.static
+        not_on_layer = self.layer != b.layer
+        return same_object or both_static or (not_on_layer and not one_static)
 
     def get_type(self):
         """ All objects should return of type 'Object' """
@@ -111,10 +115,6 @@ class Circle(Object):
         super().__init__(pos, static, material, layer)
         self._object_type = 'Circle'
         self.radius: float = radius
-
-        # lowered friction
-        self.static_friction: float = 0.1
-        self.dynamic_friction: float = 0.05
 
         self.compute_mass()
 
@@ -131,8 +131,12 @@ class Circle(Object):
         return dist < self.radius
 
     def render(self, screen: pg.Surface):
+        r = self.radius - 1
+        rot: Vec2 = Vec2(math.cos(self.orientation) * r, math.sin(self.orientation) * r)
+
+        line_to: Vec2 = self.pos + rot
         pg.draw.line(screen, self.colour,
-                     Vec2(self.pos.x, self.pos.y).get(), Vec2(self.pos.x, self.pos.y - self.radius).get(), 1)
+                     self.pos.get(), line_to.get(), 1)
         pg.draw.circle(screen, self.colour, self.pos.get(), self.radius, 1)
 
 
@@ -187,6 +191,7 @@ class Polygon(Object):
         self.inv_inertia = 0 if self.static else 1 / self.inertia
 
     def set(self, verts: list[Vec2]):
+        """ Set vertices for polygon & (re) calculate the mass """
         # todo: do more stuff here?
         self.vertices = verts
         self.vertex_count = len(verts)
@@ -201,7 +206,7 @@ class Polygon(Object):
         self.compute_mass()
 
     def get_support(self, direction: Vec2) -> Vec2:
-        """ Find the furthest support point (vertex) along given direction """
+        """ Find objects furthest support point (vertex) along given direction """
         best_projection: float = -sys.float_info.max
         best_vertex: Vec2 = Vec2()
 
@@ -236,8 +241,8 @@ class Polygon(Object):
             return 0  # collinear
 
         for i in range(self.vertex_count):
-            v1: Vec2 = self.vertices[i] + self.pos
-            v2: Vec2 = self.vertices[(i + 1) % self.vertex_count] + self.pos
+            v1: Vec2 = self.get_oriented_vert(i)
+            v2: Vec2 = self.get_oriented_vert((i + 1) % self.vertex_count)
 
             o1 = get_orient(p1, p2, v1)
             o2 = get_orient(p1, p2, v2)
@@ -257,14 +262,18 @@ class Polygon(Object):
                 intersections += 1
         return bool(intersections % 2)
 
+    def get_oriented_vert(self, index: int) -> Vec2:
+        """ Returns vertice at given index rotated to poly's mat2 in world space """
+        return self.mat2.mul_vec(self.vertices[index]) + self.pos
+
     def render(self, screen: pg.Surface):
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
+        last_vertex: Vec2 = self.get_oriented_vert(-1)
 
         for i in range(self.vertex_count):
-            p1: Vec2 = self.vertices[i] + self.pos
-            p2: Vec2 = self.vertices[(i + 1) % self.vertex_count] + self.pos
-
-            pg.draw.line(screen, self.colour, p1.get(), p2.get(), 1)
+            vert: Vec2 = self.get_oriented_vert(i)
+            pg.draw.line(screen, self.colour, last_vertex.get(), vert.get(), 1)
+            last_vertex = vert
 
 
 class SquarePoly(Polygon):
