@@ -61,6 +61,7 @@ class Manifold:
             rebound_dir_vec: Vec2 = -(e_vec + 1)
             j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
             j_vec /= inv_masses
+            j_vec /= self.contact_count
 
             # normal application of impulse (backward cause pygame)
             impulse: Vec2 = self.normal * j_vec
