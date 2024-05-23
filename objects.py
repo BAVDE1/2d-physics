@@ -178,9 +178,9 @@ class Polygon(Object):
             com += v1 * weight
             com += v2 * weight
 
-            intx2: float = (v1.x ** 2) + (v2.x * v1.x) + (v2.x ** 2)
-            inty2: float = (v1.y ** 2) + (v2.y * v1.y) + (v2.y ** 2)
-            inertia += (.25 * K_INV3 * sq_area) * (intx2 + inty2)
+            int_x2: float = (v1.x ** 2) + (v2.x * v1.x) + (v2.x ** 2)
+            int_y2: float = (v1.y ** 2) + (v2.y * v1.y) + (v2.y ** 2)
+            inertia += (.25 * K_INV3 * sq_area) * (int_x2 + int_y2)
 
         com *= 1 / area
         self.pos = self._og_pos + com  # move pos to com
@@ -196,7 +196,7 @@ class Polygon(Object):
 
     def set(self, verts: list[Vec2]):
         """ Set vertices for polygon & (re) calculate the mass """
-        # todo: do more stuff here?
+        # todo: validate allowed (no loops) polygon?
         self.vertices = verts
         self.vertex_count = len(verts)
 

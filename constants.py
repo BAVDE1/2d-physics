@@ -41,6 +41,10 @@ def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool
     return cc_1 or cc_2 or cc_3 or cc_4
 
 
+def clamp(value, min_v, max_v):
+    return max(min_v, min(max_v, value))
+
+
 def greater_than(a: float, b: float):
     return a >= (b * Forces.BIAS_RELATIVE) + (a * Forces.BIAS_ABSOLUTE)
 

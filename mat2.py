@@ -66,21 +66,7 @@ class Mat2:
 
     def mul_mat_self(self, mat: Self) -> Self:
         """ Multiply self by given matrix, return new matrix """
-        return self.mul_mat(self, mat)
-
-    def mul_mat(self, mat_a: Self, mat_b: Self) -> Self:
-        """ Multiply matrix a by matrix b, and return new matrix """
-        if isinstance(mat_a, Mat2) and isinstance(mat_b, Mat2):
-            mat = Mat2()
-
-            mat.m00 = (mat_a.m00 * mat_b.m00) + (mat_a.m01 * mat_b.m10)
-            mat.m01 = (mat_a.m00 * mat_b.m01) + (mat_a.m01 * mat_b.m11)
-            mat.m10 = (mat_a.m10 * mat_b.m00) + (mat_a.m11 * mat_b.m10)
-            mat.m11 = (mat_a.m10 * mat_b.m01) + (mat_a.m11 * mat_b.m11)
-
-            return mat
-        else:
-            raise TypeError("Given param\\s are not of type 'Mat22'")
+        return mul_mat(self, mat)
 
     def transpose_self(self) -> Self:
         """ Set matrix to its transpose (in place) """
@@ -96,3 +82,15 @@ class Mat2:
         mat.m10 = self.m01
         return mat
 
+
+def mul_mat(mat_a: Mat2, mat_b: Mat2) -> Mat2:
+    """ Multiply matrix a by matrix b, and return new matrix """
+    if isinstance(mat_a, Mat2) and isinstance(mat_b, Mat2):
+        mat = Mat2()
+        mat.m00 = (mat_a.m00 * mat_b.m00) + (mat_a.m01 * mat_b.m10)
+        mat.m01 = (mat_a.m00 * mat_b.m01) + (mat_a.m01 * mat_b.m11)
+        mat.m10 = (mat_a.m10 * mat_b.m00) + (mat_a.m11 * mat_b.m10)
+        mat.m11 = (mat_a.m10 * mat_b.m01) + (mat_a.m11 * mat_b.m11)
+        return mat
+    else:
+        raise TypeError("Given param\\s are not of type 'Mat22'")

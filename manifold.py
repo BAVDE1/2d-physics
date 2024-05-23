@@ -49,20 +49,20 @@ class Manifold:
 
         for i in range(self.contact_count):
             # relative values
-            ra: Vec2 = self.contact_points[i] - self.a.pos
-            rb: Vec2 = self.contact_points[i] - self.b.pos
-            rv: Vec2 = self.get_relative_velocity(ra, rb)
+            rel_a: Vec2 = self.contact_points[i] - self.a.pos
+            rel_b: Vec2 = self.contact_points[i] - self.b.pos
+            rel_vel: Vec2 = self.get_relative_velocity(rel_a, rel_b)
 
-            contact_vel = rv.dot(self.normal)
+            contact_vel = rel_vel.dot(self.normal)
             if contact_vel > 0:  # separating, do not collide
                 return
 
-            ra_cross_n: float = ra.cross_vec(self.normal)
-            rb_cross_n: float = rb.cross_vec(self.normal)
+            ra_cross_n: float = rel_a.cross_vec(self.normal)
+            rb_cross_n: float = rel_b.cross_vec(self.normal)
             inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
             restitution: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
-            is_resting = rv.y ** 2 < Values.RESTING
+            is_resting = rel_vel.y ** 2 < Values.RESTING
             restitution = 0.0 if is_resting else restitution
             restitution_vec: Vec2 = Vec2(restitution, 0.0 if is_resting else restitution)  # fix jitter-ing objects
 
@@ -76,15 +76,15 @@ class Manifold:
 
             # normal application of impulse (backward cause pygame)
             impulse: Vec2 = self.normal * impulse_scalar_vec
-            self.a.apply_impulse(impulse.negate(), ra)
-            self.b.apply_impulse(impulse, rb)
+            self.a.apply_impulse(impulse.negate(), rel_a)
+            self.b.apply_impulse(impulse, rel_b)
 
             # FRICTION IMPULSE
-            rv: Vec2 = self.get_relative_velocity(ra, rb)  # re-calculate after applying main impulse
-            tan: Vec2 = rv + (self.normal * -rv.dot(self.normal))  # tangent
+            rel_vel: Vec2 = self.get_relative_velocity(rel_a, rel_b)  # re-calculate after applying main impulse
+            tan: Vec2 = rel_vel + (self.normal * -rel_vel.dot(self.normal))  # tangent
             tan.normalise_self()
 
-            impulse_tan_scalar: float = -rv.dot(tan)
+            impulse_tan_scalar: float = -rel_vel.dot(tan)
             impulse_tan_scalar /= inv_masses
             impulse_tan_scalar /= self.contact_count
 
@@ -98,8 +98,8 @@ class Manifold:
                     df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
                     tan_impulse = (tan * impulse_scalar) * -df
 
-                self.a.apply_impulse(tan_impulse.negate(), ra)
-                self.b.apply_impulse(tan_impulse, rb)
+                self.a.apply_impulse(tan_impulse.negate(), rel_a)
+                self.b.apply_impulse(tan_impulse, rel_b)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
@@ -109,19 +109,15 @@ class Manifold:
         self.b.pos += self.normal * (-self.b.inv_mass * correction)
 
     def render(self, screen: pg.Surface):
-        for ci in range(self.contact_count):
-            cp = self.contact_points[ci]
+        for i in range(self.contact_count):
+            cp = self.contact_points[i]
             if cp != Vec2(0, 0):
                 rec_a = pg.Rect(cp.get(), (1, 1))
-                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 2).get())  # 2 pixel long line
+                pg.draw.line(screen, Colours.YELLOW, cp.get(), (cp + self.normal * 2).get())  # 2 pixel-long line
                 pg.draw.rect(screen, Colours.RED, rec_a)
 
     def __repr__(self):
         return f'CH({self.a}, {self.b})'
-
-
-def clamp(value, min_v, max_v):
-    return max(min_v, min(max_v, value))
 
 
 def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle) -> bool:
@@ -331,20 +327,20 @@ def clip_faces(norm: Vec2, side: float, inc_face1: Vec2, inc_face2: Vec2) -> tup
     faces = [inc_face1.clone(), inc_face2.clone()]
 
     # Retrieve distances from each endpoint to the line
-    d1: float = norm.dot(inc_face1) - side
-    d2: float = norm.dot(inc_face2) - side
+    dist_1: float = norm.dot(inc_face1) - side
+    dist_2: float = norm.dot(inc_face2) - side
 
     # If negative (behind plane) clip
-    if d1 <= 0:
+    if dist_1 <= 0:
         faces[clip_no] = inc_face1.clone()
         clip_no += 1
-    if d2 <= 0:
+    if dist_2 <= 0:
         faces[clip_no] = inc_face2.clone()
         clip_no += 1
 
     # If the points are on different sides of the plane
-    if d1 * d2 < 0:
-        alpha: float = d1 / (d2 - d1)
+    if dist_1 * dist_2 < 0:
+        alpha: float = dist_1 / (dist_2 - dist_1)
         faces[clip_no] = (inc_face1 - inc_face2) * alpha
         faces[clip_no] += inc_face1
         clip_no += 1
