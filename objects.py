@@ -225,44 +225,16 @@ class Polygon(Object):
     def is_point_in_obj(self, p1: Vec2):
         """
         Checks whether a point is within the polygon.
-        Ray casts in direction from p1, if no. faces passed though is odd, return true
+        Ray casts in direction from p1 to edge of screen, if number of faces passed though is odd, return true
         """
         intersections = 0
         p2: Vec2 = Vec2(0, p1.y)
-
-        def on_segment(a, b, c):
-            """ checks if point b lies on line segment 'ac' """
-            return ((b.x <= max(a.x, c.x)) and (b.x >= min(a.x, c.x)) and
-                    (b.y <= max(a.y, c.y)) and (b.y >= min(a.y, c.y)))
-
-        def get_orient(a, b, c):
-            """ find the orientation of an ordered triplet """
-            orient = ((b.y - a.y) * (c.x - b.x)) - ((b.x - a.x) * (c.y - b.y))
-            if orient > 0:  # clockwise
-                return 1
-            elif orient < 0:  # counter-clockwise
-                return 2
-            return 0  # collinear
 
         for i in range(self.vertex_count):
             v1: Vec2 = self.get_oriented_vert(i)
             v2: Vec2 = self.get_oriented_vert((i + 1) % self.vertex_count)
 
-            o1 = get_orient(p1, p2, v1)
-            o2 = get_orient(p1, p2, v2)
-            o3 = get_orient(v1, v2, p1)
-            o4 = get_orient(v1, v2, p2)
-
-            # normal case
-            if (o1 != o2) and (o3 != o4):
-                intersections += 1
-                continue
-
-            # collinear case
-            if (((o1 == 0) and on_segment(p1, v1, p2)) or
-                    (o2 == 0) and on_segment(p1, v2, p2) or
-                    (o3 == 0) and on_segment(v1, p1, v2) or
-                    (o4 == 0) and on_segment(v1, p2, v2)):
+            if do_lines_cross((p1, p2), (v1, v2)):
                 intersections += 1
         return bool(intersections % 2)
 

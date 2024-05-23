@@ -122,7 +122,7 @@ class Game:
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([o4, pb, pa, g1, g2, g3])
+        self.objects_group = Group([o1, o2, o3, o4, pb, pa, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 

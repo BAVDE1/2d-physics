@@ -5,8 +5,9 @@ from constants import *
 from Vec2 import Vec2
 from objects import Object, Circle, Polygon
 
-# todo: second object (b) appears to gain velocity exponentially when colliding (object type disregarded)
+# fixed: second object (b) appears to gain velocity exponentially when colliding (object type disregarded)
 # fixed: Poly:Poly collision does not seem to detect every collision (after rotation was implemented)
+# todo: Poly:Poly collusion does not seem to apply impulse when rotating into another (sometimes)
 # todo: Once inside another object, objects do not actively push away from each other (not very much at least)
 
 
@@ -36,6 +37,11 @@ class Manifold:
         # execute collision function
         self.jump_table[a][b](self, self.a, self.b)
 
+    def get_relative_velocity(self, ra: Vec2, rb: Vec2) -> Vec2:
+        """ Return relative velocity (including angular vel) of objects """
+        return ((self.b.velocity + rb.cross_fl_r(self.b.angular_velocity)) -
+                (self.a.velocity - ra.cross_fl(self.a.angular_velocity)))
+
     def resolve_collision(self):
         """ Apply impulse on colliding objects to solve collisions """
         if not self.contact_count:
@@ -45,7 +51,7 @@ class Manifold:
             # relative values
             ra: Vec2 = self.contact_points[i] - self.a.pos
             rb: Vec2 = self.contact_points[i] - self.b.pos
-            rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
+            rv: Vec2 = self.get_relative_velocity(ra, rb)
 
             contact_vel = rv.dot(self.normal)
             if contact_vel > 0:  # separating, do not collide
@@ -74,12 +80,11 @@ class Manifold:
             self.b.apply_impulse(impulse, rb)
 
             # FRICTION IMPULSE
-            rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
-            tan: Vec2 = rv
-            tan += self.normal * -rv.dot(self.normal)
+            rv: Vec2 = self.get_relative_velocity(ra, rb)  # re-calculate after applying main impulse
+            tan: Vec2 = rv + (self.normal * -rv.dot(self.normal))  # tangent
             tan.normalise_self()
 
-            impulse_tan_scalar: float = -rv.dot(tan)  # impulse tangent
+            impulse_tan_scalar: float = -rv.dot(tan)
             impulse_tan_scalar /= inv_masses
             impulse_tan_scalar /= self.contact_count
 

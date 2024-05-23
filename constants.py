@@ -3,6 +3,44 @@ from Vec2 import Vec2, EPSILON
 from mat2 import Mat2
 
 
+def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool:
+    """ Returns whether the two given lines intersect / cross one another """
+    # unpack lines
+    a1, a2 = line_a
+    b1, b2 = line_b
+
+    def on_segment(a, b, c):
+        """ checks if point b lies on line segment 'ac' """
+        return ((b.x <= max(a.x, c.x)) and (b.x >= min(a.x, c.x)) and
+                (b.y <= max(a.y, c.y)) and (b.y >= min(a.y, c.y)))
+
+    def get_orient(a, b, c):
+        """ find the orientation of an ordered triplet """
+        orient = ((b.y - a.y) * (c.x - b.x)) - ((b.x - a.x) * (c.y - b.y))
+        if orient > 0:  # clockwise
+            return 1
+        elif orient < 0:  # counter-clockwise
+            return 2
+        return 0  # collinear
+
+    o1 = get_orient(b1, b2, a1)
+    o2 = get_orient(b1, b2, a2)
+    o3 = get_orient(a1, a2, b1)
+    o4 = get_orient(a1, a2, b2)
+
+    # normal case (return early)
+    if (o1 != o2) and (o3 != o4):
+        return True
+
+    # collinear cases
+    cc_1 = (o1 == 0) and on_segment(b1, a1, b2)
+    cc_2 = (o2 == 0) and on_segment(b1, a2, b2)
+    cc_3 = (o3 == 0) and on_segment(a1, b1, a2)
+    cc_4 = (o4 == 0) and on_segment(a1, b2, a2)
+
+    return cc_1 or cc_2 or cc_3 or cc_4
+
+
 def greater_than(a: float, b: float):
     return a >= (b * Forces.BIAS_RELATIVE) + (a * Forces.BIAS_ABSOLUTE)
 

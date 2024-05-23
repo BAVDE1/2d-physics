@@ -77,6 +77,10 @@ class Vec2:
         """ Cross this and float, returns a new vec """
         return Vec2(self.y * f, self.x * -f)
 
+    def cross_fl_r(self, f: float) -> Self:
+        """ Cross this and (opposite) float, returns a new vec """
+        return Vec2(self.y * -f, self.x * f)
+
     def cross_vec(self, other: Self) -> float:
         """ Cross product of self and vector (returns a scalar) """
         if isinstance(other, Vec2):
