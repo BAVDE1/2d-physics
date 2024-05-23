@@ -114,7 +114,7 @@ class Game:
         o1 = Circle(Vec2(90, 60), 7)
         o2 = Circle(Vec2(60, 60))
         o3 = Circle(Vec2(200, 30), 10)
-        self.o4 = Circle(Vec2(120, 100), 20)
+        o4 = Circle(Vec2(120, 100), 20)
         pa = Polygon(Vec2(125, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 20), Vec2(0, 15)])
         pb = Polygon(Vec2(100, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
 
@@ -122,7 +122,7 @@ class Game:
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([pa, o1, o2, o3, pb, self.o4, g1, g2, g3])
+        self.objects_group = Group([o4, pb, pa, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -221,7 +221,7 @@ class Game:
         self.collisions.clear()
         self.init_collisions(objects)
 
-        # apply left-over velocity
+        # apply rest of velocity from last frame
         for obj in objects:
             obj.update_velocity(Values.DT)
 
@@ -259,7 +259,6 @@ class Game:
 
         self.update_particles()
         self.update_objects()
-        print(self.o4.orientation)
 
     def render(self):
         self.final_screen.fill(Colours.BG_COL)

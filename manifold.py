@@ -5,6 +5,10 @@ from constants import *
 from Vec2 import Vec2
 from objects import Object, Circle, Polygon
 
+# todo: second object (b) appears to gain velocity exponentially when colliding (object type disregarded)
+# fixed: Poly:Poly collision does not seem to detect every collision (after rotation was implemented)
+# todo: Once inside another object, objects do not actively push away from each other (not very much at least)
+
 
 class Manifold:
     """ 'A collection of points that represents an area in space' """
@@ -37,10 +41,10 @@ class Manifold:
         if not self.contact_count:
             return
 
-        for coll_count in range(self.contact_count):
+        for i in range(self.contact_count):
             # relative values
-            ra: Vec2 = self.contact_points[coll_count] - self.a.pos
-            rb: Vec2 = self.contact_points[coll_count] - self.b.pos
+            ra: Vec2 = self.contact_points[i] - self.a.pos
+            rb: Vec2 = self.contact_points[i] - self.b.pos
             rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
 
             contact_vel = rv.dot(self.normal)
@@ -51,44 +55,46 @@ class Manifold:
             rb_cross_n: float = rb.cross_vec(self.normal)
             inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
-            e: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
+            restitution: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
             is_resting = rv.y ** 2 < Values.RESTING
-            e_vec: Vec2 = Vec2(e, 0.0 if is_resting else e)  # fix jitter-ing objects
+            restitution = 0.0 if is_resting else restitution
+            restitution_vec: Vec2 = Vec2(restitution, 0.0 if is_resting else restitution)  # fix jitter-ing objects
 
-            j: float = -(1 + e) * contact_vel
-            j /= inv_masses
-            j /= self.contact_count
-            rebound_dir_vec: Vec2 = -(e_vec + 1)
-            j_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
-            j_vec /= inv_masses
-            j_vec /= self.contact_count
+            impulse_scalar: float = -(1 + restitution) * contact_vel
+            impulse_scalar /= inv_masses
+            impulse_scalar /= self.contact_count
+            rebound_dir_vec: Vec2 = -(restitution_vec + 1)
+            impulse_scalar_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
+            impulse_scalar_vec /= inv_masses
+            impulse_scalar_vec /= self.contact_count
 
             # normal application of impulse (backward cause pygame)
-            impulse: Vec2 = self.normal * j_vec
+            impulse: Vec2 = self.normal * impulse_scalar_vec
             self.a.apply_impulse(impulse.negate(), ra)
             self.b.apply_impulse(impulse, rb)
 
             # FRICTION IMPULSE
-            t: Vec2 = rv  # tangent
-            t += self.normal * -rv.dot(self.normal)
-            t.normalise_self()
+            rv: Vec2 = (self.b.velocity + rb.cross_fl(self.b.angular_velocity)) - (self.a.velocity - ra.cross_fl(self.a.angular_velocity))
+            tan: Vec2 = rv
+            tan += self.normal * -rv.dot(self.normal)
+            tan.normalise_self()
 
-            jt: float = -rv.dot(t)  # impulse tangent
-            jt /= inv_masses
-            jt /= self.contact_count
+            impulse_tan_scalar: float = -rv.dot(tan)  # impulse tangent
+            impulse_tan_scalar /= inv_masses
+            impulse_tan_scalar /= self.contact_count
 
-            if jt != 0:
+            if impulse_tan_scalar != 0:
                 sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
 
                 # Coulumb's law
-                if abs(jt) < j * sf:  # assumed at rest
-                    t_impulse = t * jt
+                if abs(impulse_tan_scalar) < impulse_scalar * sf:  # assumed at rest
+                    tan_impulse = tan * impulse_tan_scalar
                 else:  # already moving (energy of activation broken, less friction required)
                     df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
-                    t_impulse = (t * j) * -df
+                    tan_impulse = (tan * impulse_scalar) * -df
 
-                self.a.apply_impulse(t_impulse.negate(), ra)
-                self.b.apply_impulse(t_impulse, rb)
+                self.a.apply_impulse(tan_impulse.negate(), ra)
+                self.b.apply_impulse(tan_impulse, rb)
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
@@ -259,32 +265,32 @@ def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
 
 def find_axis_penetration(a: Polygon, b: Polygon) -> tuple[int, float]:
     """ Find axis (vertex of polygon a) of the least penetration (with polygon b) and return the vertex index & penetration distance """
-    best_dist: float = -sys.float_info.max  # so (mostly) anything is greater than this
+    best_pen: float = -sys.float_info.max  # so (mostly) anything is greater than this
     best_inx: int = 0
 
     for i in range(a.vertex_count):
-        norm: Vec2 = a.normals[i]
+        normal: Vec2 = a.mat2.mul_vec(a.normals[i])
 
         # transform face normal into b's model space
         b_mat: Mat2 = b.mat2.transpose()
-        n: Vec2 = b_mat.mul_vec(norm)
+        b_oriented_norm: Vec2 = b_mat.mul_vec(normal)
 
         # support point
-        support: Vec2 = b.get_support(n.negate())
+        support: Vec2 = b.get_support(b_oriented_norm.negate())
 
         # transform support vertex into b's model space
         vert: Vec2 = (a.get_oriented_vert(i)) - b.pos
         vert: Vec2 = b_mat.mul_vec(vert)
 
         # distance of penetration
-        dist: float = n.dot(support - vert)
+        penetration: float = b_oriented_norm.dot(support - vert)
 
         # store biggest distance
-        if dist > best_dist:
-            best_dist = dist
+        if penetration > best_pen:
+            best_pen = penetration
             best_inx = i
 
-    return best_inx, best_dist
+    return best_inx, best_pen
 
 
 def find_incident_face_vertices(ref_poly: Polygon, inc_poly: Polygon, ref_inx: int) -> tuple[Vec2, Vec2]:

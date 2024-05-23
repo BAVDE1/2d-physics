@@ -65,18 +65,17 @@ class Object:
             self.velocity += self.force * dt_h  # external force
 
             self.velocity += Forces.GRAVITY * dt_h
-            self.velocity += Forces.AIR_VELOCITY * dt_h
 
             self.angular_velocity += self.torque * self.inv_inertia * dt_h
 
-    def set_mat2(self):
+    def set_orient(self):
         pass
 
     def update(self, dt):
         """ See README on better dt """
         self.pos += self.velocity * dt
         self.orientation += self.angular_velocity * dt
-        self.set_mat2()
+        self.set_orient()
 
         self.update_velocity(dt)
         self.static_correction()
@@ -271,7 +270,7 @@ class Polygon(Object):
         """ Returns vertice at given index rotated to poly's mat2 in world space """
         return self.mat2.mul_vec(self.vertices[index]) + self.pos
 
-    def set_mat2(self):
+    def set_orient(self):
         self.mat2.set_rad(self.orientation)
 
     def render(self, screen: pg.Surface):
