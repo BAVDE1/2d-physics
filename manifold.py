@@ -9,6 +9,7 @@ from objects import Object, Circle, Polygon
 # fixed: Poly:Poly collision does not seem to detect every collision (after rotation was implemented)
 # todo: Poly:Poly collusion does not seem to apply impulse when rotating into another (sometimes)
 # todo: Once inside another object, objects do not actively push away from each other (not very much at least)
+# todo: Poly very slowly sinking into static Poly (could be fixed by above bug)
 
 
 class Manifold:
@@ -61,21 +62,18 @@ class Manifold:
             rb_cross_n: float = rel_b.cross_vec(self.normal)
             inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
-            restitution: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
+            # restitution & rebound
             is_resting = rel_vel.y ** 2 < Values.RESTING
-            restitution = 0.0 if is_resting else restitution
+            restitution: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
             restitution_vec: Vec2 = Vec2(restitution, 0.0 if is_resting else restitution)  # fix jitter-ing objects
+            rebound_vec: Vec2 = -(restitution_vec + 1)
 
-            impulse_scalar: float = -(1 + restitution) * contact_vel
+            impulse_scalar: Vec2 = Vec2(rebound_vec.x, rebound_vec.y) * contact_vel
             impulse_scalar /= inv_masses
             impulse_scalar /= self.contact_count
-            rebound_dir_vec: Vec2 = -(restitution_vec + 1)
-            impulse_scalar_vec: Vec2 = Vec2(rebound_dir_vec.x, rebound_dir_vec.y) * contact_vel
-            impulse_scalar_vec /= inv_masses
-            impulse_scalar_vec /= self.contact_count
 
             # normal application of impulse (backward cause pygame)
-            impulse: Vec2 = self.normal * impulse_scalar_vec
+            impulse: Vec2 = self.normal * impulse_scalar
             self.a.apply_impulse(impulse.negate(), rel_a)
             self.b.apply_impulse(impulse, rel_b)
 
@@ -92,7 +90,7 @@ class Manifold:
                 sf = math.sqrt(self.a.static_friction ** 2 + self.b.static_friction ** 2)
 
                 # Coulumb's law
-                if abs(impulse_tan_scalar) < impulse_scalar * sf:  # assumed at rest
+                if abs(impulse_tan_scalar) < impulse_scalar.x * sf:  # assumed at rest
                     tan_impulse = tan * impulse_tan_scalar
                 else:  # already moving (energy of activation broken, less friction required)
                     df = math.sqrt(self.a.dynamic_friction ** 2 + self.b.dynamic_friction ** 2)
@@ -151,6 +149,8 @@ def circle_colliding_poly(m: Manifold, c: Circle, p: Polygon) -> bool:
 
     separation: float = -sys.float_info.max
     v_inx: int = 0
+
+    # find best separation within radius
     for i in range(p.vertex_count):
         s: float = p.normals[i].dot(center - p.vertices[i])
         if s > c.radius:
@@ -216,11 +216,7 @@ def poly_colliding_poly(m: Manifold, p1: Polygon, p2: Polygon) -> bool:
             ref_inx: int = face_b_inx if flip else face_a_inx
 
             # get face vertices (in world space)
-            inc_v1: Vec2
-            inc_v2: Vec2
             inc_v1, inc_v2 = find_incident_face_vertices(ref_poly, inc_poly, ref_inx)
-            ref_v1: Vec2
-            ref_v2: Vec2
             ref_v1, ref_v2 = find_face_vertices(ref_poly, ref_inx)
 
             side_plane_norm: Vec2 = (ref_v2 - ref_v1).normalise_self()

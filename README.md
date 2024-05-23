@@ -18,16 +18,12 @@ optimisation paper: https://research.ncl.ac.uk/game/mastersdegree/gametechnologi
 
 ---
 
-walkthrough: https://code.tutsplus.com/series/how-to-create-a-custom-physics-engine--gamedev-12715
-
-video explanations: https://m.youtube.com/playlist?list=PLtrSb4XxIVbpZpV65kk73OoUcIrBzoSiO
+pretty good walkthrough: https://code.tutsplus.com/series/how-to-create-a-custom-physics-engine--gamedev-12715
 
 java example source code: https://github.com/ClickerMonkey/ImpulseEngine/tree/master
 
-better dt usage: https://web.archive.org/web/20161201054257/https://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
+better delta usage: https://web.archive.org/web/20161201054257/https://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
 
 ---
-
-https://github.com/viblo/pymunk/tree/master
 
 very cool: https://www.oocities.org/SiliconValley/2151/win95gpe.html

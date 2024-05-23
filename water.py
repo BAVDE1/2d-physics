@@ -119,9 +119,9 @@ class WaterBlock:
 
 
 class Water:
-    def __init__(self, y_pos, left_x, right_x, block_size=4):
-        self.pos: Vec2 = Vec2(left_x, y_pos)
-        self.to_pos: Vec2 = Vec2(right_x, y_pos)
+    def __init__(self, pos: Vec2, size: Vec2, block_size=3):
+        self.pos: Vec2 = pos
+        self.size: Vec2 = size
 
         self.blocks_size = block_size
         self.blocks = self.generate_blocks()
@@ -132,8 +132,7 @@ class Water:
 
     def generate_blocks(self):
         li = []
-        diff = self.to_pos.x - self.pos.x
-        num_blocks = math.ceil(diff / self.blocks_size)
+        num_blocks = math.ceil(self.size.x / self.blocks_size)
 
         for i in range(num_blocks):
             pos = Vec2(self.pos.x + (self.blocks_size * i), self.pos.y)

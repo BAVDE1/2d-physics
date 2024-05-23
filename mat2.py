@@ -93,4 +93,4 @@ def mul_mat(mat_a: Mat2, mat_b: Mat2) -> Mat2:
         mat.m11 = (mat_a.m10 * mat_b.m01) + (mat_a.m11 * mat_b.m11)
         return mat
     else:
-        raise TypeError("Given param\\s are not of type 'Mat22'")
+        raise TypeError("Given param\\s are not of type 'Mat2'")

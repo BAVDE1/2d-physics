@@ -126,7 +126,7 @@ class Game:
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
-        self.water = Water(100, 50, 250)
+        self.water = Water(Vec2(50, 50), Vec2(200, 50))
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -279,7 +279,7 @@ class Game:
         pg.draw.rect(self.canvas_screen, Colours.WHITE, pg.Rect(4, 4, Values.SCREEN_WIDTH - 8, Values.SCREEN_HEIGHT - 8), 2)
 
         # test renders
-        self.rotate_screen_blit(self.img, self.img_rot, Vec2(50, 40))
+        self.rotate_screen_blit(self.img, self.img_rot, Vec2(10, 20))
         self.img_rot += 60 * Values.DT
 
         # final
