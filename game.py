@@ -16,9 +16,6 @@ def get_mp():
 
 def hold_object(obj: Object, mp: Vec2):
     """ Reduce natural velocity and replace with a mouse force """
-    # if isinstance(obj, Polygon):
-    #     mp -= obj.size / 2  # middle of box
-
     max_f = Vec2(40, 40)
     force = (mp - obj.pos) * Values.FPS / 60
     force.clamp_self(-max_f, max_f)

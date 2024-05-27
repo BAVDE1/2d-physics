@@ -65,6 +65,7 @@ class Object:
             self.velocity += self.force * dt_h  # external force
 
             self.velocity += Forces.GRAVITY * dt_h
+            self.velocity += Forces.AIR_VELOCITY * dt_h
 
             self.angular_velocity += self.torque * self.inv_inertia * dt_h
 
@@ -225,7 +226,7 @@ class Polygon(Object):
     def is_point_in_obj(self, p1: Vec2):
         """
         Checks whether a point is within the polygon.
-        Ray casts in direction from p1 to edge of screen, if number of faces passed though is odd, return true
+        Ray casts in direction from p1 to edge of screen, if number of faces passed though is odd, point is within poly
         """
         intersections = 0
         p2: Vec2 = Vec2(0, p1.y)

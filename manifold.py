@@ -40,7 +40,7 @@ class Manifold:
 
     def get_relative_velocity(self, ra: Vec2, rb: Vec2) -> Vec2:
         """ Return relative velocity (including angular vel) of objects """
-        return ((self.b.velocity + rb.cross_fl_r(self.b.angular_velocity)) -
+        return ((self.b.velocity - rb.cross_fl(self.b.angular_velocity)) -
                 (self.a.velocity - ra.cross_fl(self.a.angular_velocity)))
 
     def resolve_collision(self):

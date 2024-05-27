@@ -10,7 +10,9 @@ def main():
     global game
 
     pg.init()
-    pg.display.set_mode(pg.Vector2(Values.SCREEN_WIDTH * Values.RES_MUL, Values.SCREEN_HEIGHT * Values.RES_MUL))
+    pg.display.set_mode(pg.Vector2(
+        Values.SCREEN_WIDTH * Values.RES_MUL,
+        Values.SCREEN_HEIGHT * Values.RES_MUL))
 
     game = Game()
 
@@ -33,6 +35,8 @@ def main():
 
             accumulator -= Values.DT
             game.main_loop()
+
+            time.sleep(Values.DT * .5)  # give cpu a little break?
 
     pg.quit()
 

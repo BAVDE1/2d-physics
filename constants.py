@@ -5,7 +5,6 @@ from mat2 import Mat2
 
 def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool:
     """ Returns whether the two given lines intersect / cross one another """
-    # unpack lines
     a1, a2 = line_a
     b1, b2 = line_b
 
@@ -56,7 +55,7 @@ class Forces:
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
     GRAVITY = Vec2(0, 100)  # 100
-    AIR_VELOCITY = Vec2()  # for wind or something
+    AIR_VELOCITY = Vec2()  # for wind or something idk
 
 
 class Materials:
@@ -83,6 +82,8 @@ class Values:
 class Colours:
     BG_COL = (0, 10, 10)
     BG_COL_LIGHT = (0, 15, 15)
+
+    # shades
     WHITE = (255, 255, 255)
     LIGHT_GREY = (150, 150, 150)
     GREY = (60, 100, 100)
@@ -91,6 +92,7 @@ class Colours:
     DARKERER_GREY = (5, 15, 15)
     BLACK = (0, 0, 0)
 
+    # colours
     RED = (255, 60, 60)
     ORANGE = (255, 140, 60)
     YELLOW = (255, 255, 0)

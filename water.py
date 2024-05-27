@@ -119,7 +119,7 @@ class WaterBlock:
 
 
 class Water:
-    def __init__(self, pos: Vec2, size: Vec2, block_size=3):
+    def __init__(self, pos: Vec2, size: Vec2, block_size=4):
         self.pos: Vec2 = pos
         self.size: Vec2 = size
 
