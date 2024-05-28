@@ -4,10 +4,12 @@ import time
 from constants import *
 from Vec2 import Vec2
 
+BASE_RIPPLE_SPEED = 1 / 60
+
 
 class Ripple:
     """ Generates the block order that a ripple will travel (in both directions) """
-    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float = 0.016):
+    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float = BASE_RIPPLE_SPEED):
         self.strength: float = strength
         self.strength_decay: float = 0.98
         self.ripple_speed: float = speed
