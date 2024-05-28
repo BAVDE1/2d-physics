@@ -85,10 +85,12 @@ class WaterBlock:
         self.block_sines: list[BlockSine] = []
         self.max_sines: int = 10
 
-    def new_sine(self, strength):
+    def new_sine(self, strength, offset):
         """ Create a fresh ripple for the block, places at start of list """
         if strength > 0 and len(self.block_sines) < self.max_sines:
-            self.block_sines.insert(0, BlockSine(strength))
+            s = BlockSine(strength)
+            s.started_time -= offset
+            self.block_sines.insert(0, s)
 
     def update(self):
         mp = pg.Rect(
@@ -156,7 +158,7 @@ class Water:
         if total_ripples < self.max_ripples:
             self.new_ripple(block_num)
 
-    def update_ripple(self, ripple, ripple_inx) -> bool:
+    def update_ripple(self, ripple, ripple_inx, offset) -> bool:
         """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was deleted """
         ripple_nums, on_ripple = ripple.get_next()
         if ripple_nums is None:
@@ -165,7 +167,7 @@ class Water:
 
         # give next block new ripple
         for inx in ripple_nums:
-            self.blocks[inx].new_sine(ripple.strength)
+            self.blocks[inx].new_sine(ripple.strength, offset)
 
             # rebound ripple if few enough ripples exist (and not old enough)
             on_water_edge = len(self.ripples) < self.allowed_rebound and (inx == 0 or inx == len(self.blocks) - 1)
@@ -182,8 +184,9 @@ class Water:
             ripple.accumulated_dt += time.time() - ripple.last_progressed
             iterations = math.floor(ripple.accumulated_dt / ripple.ripple_speed)
 
-            for _ in range(iterations):
-                if not self.update_ripple(ripple, i):
+            for it in range(iterations):
+                offset = ripple.ripple_speed * (iterations - it)
+                if not self.update_ripple(ripple, i, offset):
                     break  # stop iterating if deleted
 
             ripple.last_progressed = time.time()
