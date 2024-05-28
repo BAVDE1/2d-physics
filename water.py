@@ -6,29 +6,32 @@ from Vec2 import Vec2
 
 
 class Ripple:
-    """
-    Generates the block order that a ripple will travel (in both directions)
-    """
-    def __init__(self, strength, start_num, total_num):
-        self.strength = strength
-        self.strength_decay = 0.98
+    """ Generates the block order that a ripple will travel (in both directions) """
+    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float = 0.016):
+        self.strength: float = strength
+        self.strength_decay: float = 0.98
+        self.ripple_speed: float = speed
 
-        self.start_num = start_num
-        self.total_num = total_num
+        self.start_inx: int = start_inx
+        self.end_inx: int = end_inx
 
-        self.generated = self.generate()
-        self.on_ripple = -1
+        self.generated_order: list = self.generate_order()
+        self.on_ripple: int = -1
 
-        self.end_cut_off = 1
+        self.strength_cut_off: float = 1
 
-    def generate(self):
-        sn = self.start_num
+        self.last_progressed: float = time.time()
+        self.accumulated_dt: float = 0
+
+    def generate_order(self) -> list:
+        """ Generates the order in which the ripple will travel. Returns list of indexes of the blocks """
+        sn = self.start_inx
         li = [[sn]]  # first ripple already there
-        for number in range(1, self.total_num):
+        for number in range(1, self.end_inx):
             up = sn + number
             down = sn - number
             seg = []
-            if up < self.total_num:
+            if up < self.end_inx:
                 seg.append(up)
             if down > -1:
                 seg.append(down)
@@ -36,26 +39,28 @@ class Ripple:
                 li.append(seg)
         return li
 
-    def get_next(self):
+    def get_next(self) -> list[int]:
+        """ Get next blocks to add a ripple to """
         self.on_ripple += 1
+        self.strength *= self.strength_decay
 
-        self.strength = self.strength * self.strength_decay
-        # None if no more iterations or strength is too low
-        val = None if len(self.generated) == 0 or self.strength < self.end_cut_off else self.generated.pop(0)
+        blocks_left = len(self.generated_order)
+        too_weak = self.strength < self.strength_cut_off
+        val = None if blocks_left == 0 or too_weak else self.generated_order.pop(0)
+
         return [val, self.on_ripple]
 
 
 class BlockSine:
-    """
-    One ripple handled for one block
-    """
+    """ One ripple handled for one block """
     def __init__(self, strength):
-        self.strength = strength
+        self.strength: float = strength
 
-        self.started_time = time.time()
-        self.max_time_alive = 0.8
+        self.started_time: float = time.time()
+        self.max_time_alive: float = 0.8
 
     def get_sine(self):
+        """ Return sine value for block """
         time_alive = time.time() - self.started_time
         time_left = self.max_time_alive - time_alive
 
@@ -66,21 +71,22 @@ class BlockSine:
 
 
 class WaterBlock:
-    def __init__(self, wave, pos: Vec2, size, num):
-        self.wave = wave
-        self.num = num
+    def __init__(self, water, pos: Vec2, size: int, inx: int):
+        self.water: Water = water
+        self.inx: int = inx
 
-        self.display_rect = pg.Rect(pos.get(), [size] * 2)
-        self.og_display_rect = pg.Rect(self.display_rect)
+        self.display_rect: pg.Rect = pg.Rect(pos.get(), [size] * 2)
+        self.og_display_rect: pg.Rect = pg.Rect(self.display_rect)
 
-        margin = size * 1.5
-        self.coll_bounds = pg.Rect(self.display_rect.x, self.display_rect.y - margin / 2,
+        margin: float = size * 1.5
+        self.coll_bounds: pg.Rect = pg.Rect(self.display_rect.x, self.display_rect.y - margin / 2,
                                    self.display_rect.w, self.display_rect.h + margin)
-        self.mouse_in = False
-        self.block_sines = []
-        self.max_sines = 10
+        self.mouse_in: bool = False
+        self.block_sines: list[BlockSine] = []
+        self.max_sines: int = 10
 
     def new_sine(self, strength):
+        """ Create a fresh ripple for the block, places at start of list """
         if strength > 0 and len(self.block_sines) < self.max_sines:
             self.block_sines.insert(0, BlockSine(strength))
 
@@ -93,7 +99,7 @@ class WaterBlock:
 
         if not self.mouse_in and colliding:
             self.mouse_in = True
-            self.wave.mouse_collided(self.num)
+            self.water.on_mouse_collided(self.inx)
         elif self.mouse_in and not colliding:
             self.mouse_in = False
 
@@ -123,14 +129,15 @@ class Water:
         self.pos: Vec2 = pos
         self.size: Vec2 = size
 
-        self.blocks_size = block_size
-        self.blocks = self.generate_blocks()
+        self.blocks_size: int = block_size
+        self.blocks: list[WaterBlock] = self.generate_blocks()
 
-        self.ripples = []
-        self.max_ripples = 22
-        self.allow_rebound = 10
+        self.ripples: list[Ripple] = []
+        self.max_ripples: int = 22
+        self.allowed_rebound: int = 10  # allows rebound if less than x ripples exist
 
-    def generate_blocks(self):
+    def generate_blocks(self) -> list[WaterBlock]:
+        """ Generates the blocks for the water, from left to right """
         li = []
         num_blocks = math.ceil(self.size.x / self.blocks_size)
 
@@ -139,31 +146,53 @@ class Water:
             li.append(WaterBlock(self, pos, self.blocks_size, i))
         return li
 
-    def new_ripple(self, block_num, strength=5):
+    def new_ripple(self, block_num, strength=5.0):
+        """ Add new ripple to the water. Inserts at beginning of list """
         self.ripples.insert(0, Ripple(strength, block_num, len(self.blocks)))
 
-    def mouse_collided(self, block_num):
+    def on_mouse_collided(self, block_num):
+        """ Event called when mouse collides with a block """
         total_ripples = len(self.ripples)
         if total_ripples < self.max_ripples:
             self.new_ripple(block_num)
 
+    def update_ripple(self, ripple, ripple_inx) -> bool:
+        """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was deleted """
+        ripple_nums, on_ripple = ripple.get_next()
+        if ripple_nums is None:
+            del self.ripples[ripple_inx]
+            return False
+
+        # give next block new ripple
+        for inx in ripple_nums:
+            self.blocks[inx].new_sine(ripple.strength)
+
+            # rebound ripple if few enough ripples exist (and not old enough)
+            on_water_edge = len(self.ripples) < self.allowed_rebound and (inx == 0 or inx == len(self.blocks) - 1)
+            if on_ripple > 0 and on_water_edge:
+                self.new_ripple(inx, ripple.strength)
+        return True
+
+    def updated_all_ripples(self):
+        """
+        Progress every ripple
+        Iterations are how many times the r should be progressed. Based on how much time since the r was last updated, and the r's speed.
+        """
+        for i, ripple in enumerate(self.ripples):
+            ripple.accumulated_dt += time.time() - ripple.last_progressed
+            iterations = math.floor(ripple.accumulated_dt / ripple.ripple_speed)
+
+            for _ in range(iterations):
+                if not self.update_ripple(ripple, i):
+                    break  # stop iterating if deleted
+
+            ripple.last_progressed = time.time()
+            ripple.accumulated_dt -= ripple.ripple_speed * iterations
+
     def update(self):
         for b in self.blocks:
             b.update()
-
-        for i, ripple in enumerate(self.ripples):
-            ripple_nums, on_ripple = ripple.get_next()
-            if ripple_nums is None:
-                del self.ripples[i]
-                continue
-
-            # give next block new ripple
-            for block in ripple_nums:
-                self.blocks[block].new_sine(ripple.strength)
-
-                # rebound ripple if few enough ripples exist (and not on first ripple)
-                if on_ripple > 0 and len(self.ripples) < self.allow_rebound and (block == 0 or block == len(self.blocks) - 1):
-                    self.new_ripple(block, ripple.strength)
+        self.updated_all_ripples()
 
     def render(self, screen: pg.Surface):
         for b in self.blocks:
