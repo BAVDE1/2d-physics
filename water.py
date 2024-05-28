@@ -173,7 +173,7 @@ class Water:
                 self.new_ripple(inx, ripple.strength)
         return True
 
-    def updated_all_ripples(self):
+    def update_all_ripples(self):
         """
         Progress every ripple
         Iterations are how many times the r should be progressed. Based on how much time since the r was last updated, and the r's speed.
@@ -190,9 +190,11 @@ class Water:
             ripple.accumulated_dt -= ripple.ripple_speed * iterations
 
     def update(self):
+        self.update_all_ripples()
+
         for b in self.blocks:
             b.update()
-        self.updated_all_ripples()
+
 
     def render(self, screen: pg.Surface):
         for b in self.blocks:
