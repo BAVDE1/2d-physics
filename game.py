@@ -252,7 +252,7 @@ class Game:
         if self.holding_obj is not None:
             hold_object(self.holding_obj, self.mp)
 
-        self.water.check_collision(self.objects_group.objects)
+        self.water.check_loose_collision(self.objects_group.objects)
         self.water.update()
 
         self.update_particles()

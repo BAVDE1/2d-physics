@@ -5,19 +5,25 @@ from constants import *
 from Vec2 import Vec2
 from objects import Object
 
+
+# todo: ripples spawned on object collision of water surface. Object velocity & mass affects ripple behaviour (strength, speed)
+# todo: apply water force & drag on submerged object
+# todo: have material density & object mass affect under-water forces
+
+
 BASE_RIPPLE_SPEED = 15
 BASE_SPEED_MUL = 4
 
 
 class Ripple:
     """ Generates the block order that a ripple will travel (in both directions) """
-    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float):
+    def __init__(self, strength: float, start_inx: int, max_inx: int, speed: float):
         self.strength: float = strength
         self.strength_decay: float = 0.98
         self.ripple_speed: float = 1 / speed
 
         self.start_inx: int = start_inx
-        self.end_inx: int = end_inx
+        self.max_inx: int = max_inx
 
         self.generated_order: list = self.generate_order()
         self.on_ripple: int = -1
@@ -31,11 +37,11 @@ class Ripple:
         """ Generates the order in which the ripple will travel. Returns list of indexes of the blocks """
         sn = self.start_inx
         li = [[sn]]  # first ripple already there
-        for number in range(1, self.end_inx):
+        for number in range(1, self.max_inx):
             rhs = sn + number
             lhs = sn - number
             seg = []
-            if rhs < self.end_inx:
+            if rhs < self.max_inx:
                 seg.append(rhs)
             if lhs > -1:
                 seg.append(lhs)
@@ -122,23 +128,31 @@ class Water:
         margin = Vec2(0, 20)
         self.pos: Vec2 = pos
         self.size: Vec2 = size
+
+        # loose collision bounds
         self.bounds_pos: Vec2 = pos.clone() - margin
         self.bounds_size: Vec2 = size.clone() + margin
+        self.bounds_centre_pos: Vec2 = Vec2()
+        self.bounds_bottom_right: Vec2 = Vec2()
 
         self.blocks_size: int = block_size
         self.blocks: list[WaterBlock] = self.generate_blocks()
 
-        # re-scale x size
-        x_siz = block_size * len(self.blocks)
-        self.size.x = x_siz
-        self.bounds_size.x = x_siz
-        self.bounds_centre_pos: Vec2 = self.bounds_pos + self.bounds_size / 2
-        self.bounds_bottom_right: Vec2 = self.bounds_pos + self.bounds_size
-
         self.ripples: list[Ripple] = []
         self.queued_ripples: list[Ripple] = []
         self.max_ripples: int = 22
-        self.allowed_rebound: int = 10  # allows rebound if less than x ripples exist
+        self.allowed_ripple_rebound: int = 10  # allows rebound if less than x ripples exist
+
+        self.re_scale_size()
+
+    def re_scale_size(self):
+        """ Re-scale the size of water & its re-calculate bounds """
+        x_size = self.blocks_size * len(self.blocks)
+        self.size.x = x_size
+        self.bounds_size.x = x_size
+
+        self.bounds_centre_pos = self.bounds_pos + self.bounds_size / 2
+        self.bounds_bottom_right = self.bounds_pos + self.bounds_size
 
     def generate_blocks(self) -> list[WaterBlock]:
         """ Generates the blocks for the water, from left to right """
@@ -174,7 +188,7 @@ class Water:
 
             # rebound ripple if few enough ripples exist (and not old enough)
             on_water_edge = (inx == 0 or inx == len(self.blocks) - 1)
-            if on_ripple > 0 and len(self.ripples) < self.allowed_rebound and on_water_edge:
+            if on_ripple > 0 and len(self.ripples) < self.allowed_ripple_rebound and on_water_edge:
                 self.queue_ripple(inx, ripple.strength)
         return True
 
@@ -207,8 +221,8 @@ class Water:
         depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
         return pos_in_water, depth
 
-    def check_collision(self, objects: list[Object]):
-        """ Checks and solves collisions with objects """
+    def check_loose_collision(self, objects: list[Object]):
+        """ Checks for objects near water and resolves collisions on nearby objects """
         for obj in objects:
             if not obj.static:
                 in_water = False

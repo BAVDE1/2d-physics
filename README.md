@@ -16,6 +16,14 @@ angular paper: https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/ph
 
 optimisation paper: https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/6accelerationstructures/Physics%20-%20Spatial%20Acceleration%20Structures.pdf
 
+liquid stuff: https://phys.libretexts.org/Bookshelves/Classical_Mechanics/Classical_Mechanics_(Dourmashkin)/08%3A_Applications_of_Newtons_Second_Law/8.06%3A_Drag_Forces_in_Fluids
+
+https://courses.lumenlearning.com/suny-physics/chapter/5-2-drag-forces/
+
+https://en.wikipedia.org/wiki/Drag_(physics)
+
+https://en.wikipedia.org/wiki/Drag_coefficient
+
 ---
 
 pretty good walkthrough: https://code.tutsplus.com/series/how-to-create-a-custom-physics-engine--gamedev-12715

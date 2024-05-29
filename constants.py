@@ -69,6 +69,8 @@ class Forces:
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
     GRAVITY = Vec2(0, 100)  # 100
+
+    WATER_DENSITY = 1  # 1.3?
     WATER_VELOCITY = Vec2(0, -40)
 
 
