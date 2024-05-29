@@ -1,6 +1,7 @@
 import pygame as pg
 from Vec2 import Vec2, EPSILON
 from mat2 import Mat2
+import math
 
 
 def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool:
@@ -41,10 +42,18 @@ def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool
 
 
 def clamp(value, min_v, max_v):
+    """ Clamps value between given min and max """
     return max(min_v, min(max_v, value))
 
 
+def round_up(value, d_places=0) -> float:
+    """ Rounds given value up by 0 or more decimal places """
+    places_int = int('1' + '0' * d_places)
+    return math.ceil(value * places_int) / places_int
+
+
 def greater_than(a: float, b: float):
+    """ Greater than with bias """
     return a >= (b * Forces.BIAS_RELATIVE) + (a * Forces.BIAS_ABSOLUTE)
 
 

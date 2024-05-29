@@ -25,6 +25,7 @@ class Object:
         self.pos: Vec2 = pos
         self.static: bool = static
         self.layer: int = layer
+        self.in_water: bool = False
 
         # texture
         self.colour = Colours.WHITE
@@ -71,6 +72,9 @@ class Object:
 
     def set_orient(self):
         pass
+
+    def get_radius(self) -> float:
+        return 0.0
 
     def update(self, dt):
         """ See README on better dt """
@@ -135,6 +139,9 @@ class Circle(Object):
         dist = (p - self.pos).length()
         return dist < self.radius
 
+    def get_radius(self) -> float:
+        return self.radius
+
     def render(self, screen: pg.Surface):
         r = self.radius - 1
         rot: Vec2 = Vec2(math.cos(self.orientation) * r, math.sin(self.orientation) * r)
@@ -155,6 +162,9 @@ class Polygon(Object):
         self.vertex_count = 0
         self.vertices: list[Vec2] = []
         self.normals: list[Vec2] = []
+
+        self.inner_radius: float = sys.float_info.max
+        self.outer_radius: float = -sys.float_info.max
 
         if vertices is not None:
             self.set(vertices)
@@ -195,13 +205,22 @@ class Polygon(Object):
         self.inertia = abs(inertia * self.material.density)
         self.inv_inertia = 0 if self.static else 1 / self.inertia
 
+    def find_radii(self):
+        """ Find smallest and largest radii of object (should be done after mass is computed and com is set) """
+        for v in self.vertices:
+            dist = round_up((self.pos - (self.pos + v)).length(), 2)
+            if dist < self.inner_radius:
+                self.inner_radius = dist
+            if dist > self.outer_radius:
+                self.outer_radius = dist
+
     def set(self, verts: list[Vec2]):
         """ Set vertices for polygon & (re) calculate the mass """
         # todo: validate allowed (no loops) polygon?
         self.vertices = verts
         self.vertex_count = len(verts)
 
-        # compute normals for each face
+        # compute normals for each face & find radius
         for i in range(self.vertex_count):
             face: Vec2 = self.vertices[(i + 1) % self.vertex_count] - self.vertices[i]
 
@@ -209,6 +228,7 @@ class Polygon(Object):
             self.normals.append(normal.normalise_self())
 
         self.compute_mass()
+        self.find_radii()
 
     def get_support(self, direction: Vec2) -> Vec2:
         """ Find objects furthest support point (vertex) along given direction """
@@ -246,7 +266,14 @@ class Polygon(Object):
     def set_orient(self):
         self.mat2.set_rad(self.orientation)
 
+    def get_radius(self) -> float:
+        return self.outer_radius
+
     def render(self, screen: pg.Surface):
+        if not self.static:
+            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.inner_radius, 1)
+            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.outer_radius, 1)
+
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
         last_vertex: Vec2 = self.get_oriented_vert(-1)
 

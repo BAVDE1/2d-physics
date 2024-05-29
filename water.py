@@ -3,6 +3,7 @@ import time
 
 from constants import *
 from Vec2 import Vec2
+from objects import Object
 
 BASE_RIPPLE_SPEED = 15
 BASE_SPEED_MUL = 4
@@ -31,13 +32,13 @@ class Ripple:
         sn = self.start_inx
         li = [[sn]]  # first ripple already there
         for number in range(1, self.end_inx):
-            up = sn + number
-            down = sn - number
+            rhs = sn + number
+            lhs = sn - number
             seg = []
-            if up < self.end_inx:
-                seg.append(up)
-            if down > -1:
-                seg.append(down)
+            if rhs < self.end_inx:
+                seg.append(rhs)
+            if lhs > -1:
+                seg.append(lhs)
             if len(seg):
                 li.append(seg)
         return li
@@ -47,9 +48,9 @@ class Ripple:
         self.on_ripple += 1
         self.strength *= self.strength_decay
 
-        blocks_left = len(self.generated_order)
+        num_blocks_left = len(self.generated_order)
         too_weak = self.strength < self.strength_cut_off
-        val = None if blocks_left == 0 or too_weak else self.generated_order.pop(0)
+        val = None if num_blocks_left == 0 or too_weak else self.generated_order.pop(0)
 
         return [val, self.on_ripple]
 
@@ -95,18 +96,14 @@ class WaterBlock:
             s.started_time -= offset
             self.block_sines.insert(0, s)
 
-    def update(self):
-        mp = pg.Rect(
-            Vec2(pg.mouse.get_pos()[0] / Values.RES_MUL, pg.mouse.get_pos()[1] / Values.RES_MUL).get(),
-            [1, 1]
-        )
-        colliding = self.coll_bounds.contains(mp)
-
-        if not self.mouse_in and colliding:
-            self.mouse_in = True
-            self.water.on_mouse_collided(self.inx)
-        elif self.mouse_in and not colliding:
-            self.mouse_in = False
+    # def update(self, mp: Vec2):
+    #     colliding = self.coll_bounds.collidepoint(mp.get())
+    #
+    #     if not self.mouse_in and colliding:
+    #         self.mouse_in = True
+    #         self.water.on_mouse_collided(self.inx)
+    #     elif self.mouse_in and not colliding:
+    #         self.mouse_in = False
 
     def render(self, screen: pg.Surface):
         prev_rect = self.display_rect
@@ -131,11 +128,21 @@ class WaterBlock:
 
 class Water:
     def __init__(self, pos: Vec2, size: Vec2, block_size=4):
+        margin = Vec2(0, 20)
         self.pos: Vec2 = pos
         self.size: Vec2 = size
+        self.bounds_pos: Vec2 = pos.clone() - margin
+        self.bounds_size: Vec2 = size.clone() + margin
 
         self.blocks_size: int = block_size
         self.blocks: list[WaterBlock] = self.generate_blocks()
+
+        # re-scale x size
+        x_siz = block_size * len(self.blocks)
+        self.size.x = x_siz
+        self.bounds_size.x = x_siz
+        self.bounds_centre_pos: Vec2 = self.bounds_pos + self.bounds_size / 2
+        self.bounds_bottom_left: Vec2 = self.bounds_pos + self.bounds_size
 
         self.ripples: list[Ripple] = []
         self.queued_ripples: list[Ripple] = []
@@ -203,13 +210,27 @@ class Water:
             self.ripples = self.queued_ripples + self.ripples
             self.queued_ripples.clear()
 
+    def solve_collision(self, obj: Object):
+        """ Called when object is within the bounds of the water """
+        print(obj)
+
+    def check_collision(self, objects: list[Object]):
+        """ Checks and solves collisions with objects """
+        for obj in objects:
+            if not obj.static:
+                projected_point: Vec2 = (self.bounds_centre_pos - obj.pos).normalise_self() * obj.get_radius()
+                projected_point += obj.pos  # to world space
+                in_bounds = (self.bounds_pos.x < projected_point.x < self.bounds_bottom_left.x and
+                             self.bounds_pos.y < projected_point.y < self.bounds_bottom_left.y)
+                if in_bounds:
+                    self.solve_collision(obj)
+
     def update(self):
         self.add_queued_ripples()
         self.update_all_ripples()
 
-        for b in self.blocks:
-            b.update()
-
     def render(self, screen: pg.Surface):
+        pg.draw.rect(screen, Colours.DARKER_GREY, pg.Rect(self.bounds_pos.get(), self.bounds_size.get()), 2)
+        pg.draw.rect(screen, Colours.DARK_GREY, pg.Rect(self.pos.get(), self.size.get()), 2)
         for b in self.blocks:
             b.render(screen)

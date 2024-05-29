@@ -123,7 +123,7 @@ class Game:
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
-        self.water = Water(Vec2(50, 50), Vec2(200, 50))
+        self.water = Water(Vec2(50, 50), Vec2(150, 50))
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -252,6 +252,7 @@ class Game:
         if self.holding_obj is not None:
             hold_object(self.holding_obj, self.mp)
 
+        self.water.check_collision(self.objects_group.objects)
         self.water.update()
 
         self.update_particles()
