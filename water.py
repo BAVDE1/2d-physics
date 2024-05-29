@@ -4,15 +4,16 @@ import time
 from constants import *
 from Vec2 import Vec2
 
-BASE_RIPPLE_SPEED = 1 / 60
+BASE_RIPPLE_SPEED = 15
+BASE_SPEED_MUL = 4
 
 
 class Ripple:
     """ Generates the block order that a ripple will travel (in both directions) """
-    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float = BASE_RIPPLE_SPEED):
+    def __init__(self, strength: float, start_inx: int, end_inx: int, speed: float):
         self.strength: float = strength
         self.strength_decay: float = 0.98
-        self.ripple_speed: float = speed
+        self.ripple_speed: float = 1 / speed
 
         self.start_inx: int = start_inx
         self.end_inx: int = end_inx
@@ -137,6 +138,7 @@ class Water:
         self.blocks: list[WaterBlock] = self.generate_blocks()
 
         self.ripples: list[Ripple] = []
+        self.queued_ripples: list[Ripple] = []
         self.max_ripples: int = 22
         self.allowed_rebound: int = 10  # allows rebound if less than x ripples exist
 
@@ -150,18 +152,19 @@ class Water:
             li.append(WaterBlock(self, pos, self.blocks_size, i))
         return li
 
-    def new_ripple(self, block_num, strength=5.0):
-        """ Add new ripple to the water. Inserts at beginning of list """
-        self.ripples.insert(0, Ripple(strength, block_num, len(self.blocks)))
+    def queue_ripple(self, block_num, strength=5.0, speed: float = BASE_RIPPLE_SPEED):
+        """ Add new ripple to the ripple queue. Inserts at beginning of queue """
+        mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
+        self.queued_ripples.insert(0, Ripple(strength, block_num, len(self.blocks), speed * max(1, mul)))
 
     def on_mouse_collided(self, block_num):
         """ Event called when mouse collides with a block """
         total_ripples = len(self.ripples)
         if total_ripples < self.max_ripples:
-            self.new_ripple(block_num)
+            self.queue_ripple(block_num)
 
     def update_ripple(self, ripple, ripple_inx, offset) -> bool:
-        """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was deleted """
+        """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was kept """
         ripple_nums, on_ripple = ripple.get_next()
         if ripple_nums is None:
             del self.ripples[ripple_inx]
@@ -172,9 +175,9 @@ class Water:
             self.blocks[inx].new_sine(ripple.strength, offset)
 
             # rebound ripple if few enough ripples exist (and not old enough)
-            on_water_edge = len(self.ripples) < self.allowed_rebound and (inx == 0 or inx == len(self.blocks) - 1)
-            if on_ripple > 0 and on_water_edge:
-                self.new_ripple(inx, ripple.strength)
+            on_water_edge = (inx == 0 or inx == len(self.blocks) - 1)
+            if on_ripple > 0 and len(self.ripples) < self.allowed_rebound and on_water_edge:
+                self.queue_ripple(inx, ripple.strength)
         return True
 
     def update_all_ripples(self):
@@ -194,12 +197,18 @@ class Water:
             ripple.last_progressed = time.time()
             ripple.accumulated_dt -= ripple.ripple_speed * iterations
 
+    def add_queued_ripples(self):
+        """ Add queued ripples to ripples list """
+        if len(self.queued_ripples):
+            self.ripples = self.queued_ripples + self.ripples
+            self.queued_ripples.clear()
+
     def update(self):
+        self.add_queued_ripples()
         self.update_all_ripples()
 
         for b in self.blocks:
             b.update()
-
 
     def render(self, screen: pg.Surface):
         for b in self.blocks:
