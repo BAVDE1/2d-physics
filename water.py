@@ -96,15 +96,6 @@ class WaterBlock:
             s.started_time -= offset
             self.block_sines.insert(0, s)
 
-    # def update(self, mp: Vec2):
-    #     colliding = self.coll_bounds.collidepoint(mp.get())
-    #
-    #     if not self.mouse_in and colliding:
-    #         self.mouse_in = True
-    #         self.water.on_mouse_collided(self.inx)
-    #     elif self.mouse_in and not colliding:
-    #         self.mouse_in = False
-
     def render(self, screen: pg.Surface):
         prev_rect = self.display_rect
         self.display_rect = pg.Rect(self.og_display_rect)
@@ -142,7 +133,7 @@ class Water:
         self.size.x = x_siz
         self.bounds_size.x = x_siz
         self.bounds_centre_pos: Vec2 = self.bounds_pos + self.bounds_size / 2
-        self.bounds_bottom_left: Vec2 = self.bounds_pos + self.bounds_size
+        self.bounds_bottom_right: Vec2 = self.bounds_pos + self.bounds_size
 
         self.ripples: list[Ripple] = []
         self.queued_ripples: list[Ripple] = []
@@ -210,20 +201,28 @@ class Water:
             self.ripples = self.queued_ripples + self.ripples
             self.queued_ripples.clear()
 
-    def solve_collision(self, obj: Object):
+    def resolve_collision(self, obj: Object) -> tuple[bool, float]:
         """ Called when object is within the bounds of the water """
-        print(obj)
+        pos_in_water = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
+        depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
+        return pos_in_water, depth
 
     def check_collision(self, objects: list[Object]):
         """ Checks and solves collisions with objects """
         for obj in objects:
             if not obj.static:
+                in_water = False
+                depth = 0.0
+
                 projected_point: Vec2 = (self.bounds_centre_pos - obj.pos).normalise_self() * obj.get_radius()
                 projected_point += obj.pos  # to world space
-                in_bounds = (self.bounds_pos.x < projected_point.x < self.bounds_bottom_left.x and
-                             self.bounds_pos.y < projected_point.y < self.bounds_bottom_left.y)
-                if in_bounds:
-                    self.solve_collision(obj)
+                in_loose_bounds = is_point_in_rect(projected_point, self.bounds_pos, self.bounds_bottom_right)
+
+                if in_loose_bounds:
+                    in_water, depth = self.resolve_collision(obj)
+
+                obj.in_water = in_water
+                obj.water_depth = depth
 
     def update(self):
         self.add_queued_ripples()

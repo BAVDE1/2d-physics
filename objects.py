@@ -25,7 +25,10 @@ class Object:
         self.pos: Vec2 = pos
         self.static: bool = static
         self.layer: int = layer
+
+        # water
         self.in_water: bool = False
+        self.water_depth: float = 0.0
 
         # texture
         self.colour = Colours.WHITE
@@ -65,8 +68,12 @@ class Object:
             dt_h = dt * 0.5
             self.velocity += self.force * dt_h  # external force
 
-            self.velocity += Forces.GRAVITY * dt_h
-            self.velocity += Forces.AIR_VELOCITY * dt_h
+            gravity_force = Forces.GRAVITY
+            self.velocity += gravity_force * dt_h
+
+            # apply drag
+            if self.in_water:
+                pass
 
             self.angular_velocity += self.torque * self.inv_inertia * dt_h
 

@@ -52,6 +52,11 @@ def round_up(value, d_places=0) -> float:
     return math.ceil(value * places_int) / places_int
 
 
+def is_point_in_rect(point: Vec2, top_left: Vec2, bottom_right: Vec2) -> bool:
+    """ Returns whether point is within the bounds of a rectangle """
+    return top_left.x < point.x < bottom_right.x and top_left.y < point.y < bottom_right.y
+
+
 def greater_than(a: float, b: float):
     """ Greater than with bias """
     return a >= (b * Forces.BIAS_RELATIVE) + (a * Forces.BIAS_ABSOLUTE)
@@ -64,7 +69,7 @@ class Forces:
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
     GRAVITY = Vec2(0, 100)  # 100
-    AIR_VELOCITY = Vec2()  # for wind or something idk
+    WATER_VELOCITY = Vec2(0, -40)
 
 
 class Materials:
