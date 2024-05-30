@@ -85,12 +85,13 @@ class WaterBlock:
         self.water: Water = water
         self.inx: int = inx
 
-        self.display_rect: pg.Rect = pg.Rect(pos.get(), [size] * 2)
-        self.og_display_rect: pg.Rect = pg.Rect(self.display_rect)
+        self.rect: pg.Rect = pg.Rect(pos.get(), [size] * 2)
+        self.prev_rect: pg.Rect = self.rect.copy()
+        self.og_display_rect: pg.Rect = pg.Rect(self.rect)
 
         margin: float = size * 1.5
-        self.coll_bounds: pg.Rect = pg.Rect(self.display_rect.x, self.display_rect.y - margin / 2,
-                                   self.display_rect.w, self.display_rect.h + margin)
+        self.coll_bounds: pg.Rect = pg.Rect(self.rect.x, self.rect.y - margin / 2,
+                                            self.rect.w, self.rect.h + margin)
         self.mouse_in: bool = False
         self.block_sines: list[BlockSine] = []
         self.max_sines: int = 10
@@ -102,9 +103,9 @@ class WaterBlock:
             s.started_time -= offset
             self.block_sines.insert(0, s)
 
-    def render(self, screen: pg.Surface):
-        prev_rect = self.display_rect
-        self.display_rect = pg.Rect(self.og_display_rect)
+    def update(self):
+        self.prev_rect = self.rect
+        new_r = pg.Rect(self.og_display_rect)
 
         # add sines to y pos
         for i, sine in enumerate(self.block_sines):
@@ -114,13 +115,15 @@ class WaterBlock:
                 continue
 
             val = val / (i + 1)  # diminish older sines (so there's no insane stacking)
-            self.display_rect.y -= val
+            new_r.y -= val
+        self.rect = new_r
 
+    def render(self, screen: pg.Surface):
         # display cube
         pg.draw.rect(screen, Colours.RED, self.coll_bounds)
-        if prev_rect != self.display_rect:
-            pg.draw.rect(screen, Colours.BLUE, prev_rect)  # behind block
-        pg.draw.rect(screen, Colours.LIGHT_BLUE, self.display_rect)
+        if self.prev_rect != self.rect:
+            pg.draw.rect(screen, Colours.BLUE, self.prev_rect)  # behind block
+        pg.draw.rect(screen, Colours.LIGHT_BLUE, self.rect)
 
 
 class Water:
@@ -164,16 +167,13 @@ class Water:
             li.append(WaterBlock(self, pos, self.blocks_size, i))
         return li
 
-    def queue_ripple(self, block_num, strength=5.0, speed: float = BASE_RIPPLE_SPEED):
+    def create_ripple(self, block_inx: int, obj: Object):
+        """ Calculate necessary values for the new ripple & add to queue if strong enough """
+
+    def queue_ripple(self, block_inx: int, strength=5.0, speed: float = BASE_RIPPLE_SPEED):
         """ Add new ripple to the ripple queue. Inserts at beginning of queue """
         mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
-        self.queued_ripples.insert(0, Ripple(strength, block_num, len(self.blocks), speed * max(1, mul)))
-
-    def on_mouse_collided(self, block_num):
-        """ Event called when mouse collides with a block """
-        total_ripples = len(self.ripples)
-        if total_ripples < self.max_ripples:
-            self.queue_ripple(block_num)
+        self.queued_ripples.insert(0, Ripple(strength, block_inx, len(self.blocks), speed * max(1, mul)))
 
     def update_ripple(self, ripple, ripple_inx, offset) -> bool:
         """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was kept """
@@ -215,30 +215,56 @@ class Water:
             self.ripples = self.queued_ripples + self.ripples
             self.queued_ripples.clear()
 
-    def resolve_collision(self, obj: Object) -> tuple[bool, float]:
+    def resolve_collision(self, obj: Object) -> tuple[bool, bool, bool, float]:
         """ Called when object is within the bounds of the water """
-        pos_in_water = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
-        depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
-        return pos_in_water, depth
+        is_touching = obj.is_touching_water
+        is_submerged = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
+        is_fully_submerged = obj.is_fully_submerged
 
-    def check_loose_collision(self, objects: list[Object]):
+        block_inx: int = math.floor((obj.pos.x - self.pos.x) / self.blocks_size)
+        block: WaterBlock = self.blocks[clamp(block_inx, 0, len(self.blocks) - 1)]
+
+        # check below object
+        lower_point: Vec2 = obj.pos + Vec2(0, obj.get_radius())
+        if lower_point.y > block.rect.top and not obj.is_touching_water and not is_submerged:
+            is_touching = True
+            self.create_ripple(block_inx, obj)
+        elif lower_point.y < block.rect.top:
+            is_touching = False
+
+        # check above obj
+        if is_submerged:
+            upper_point: Vec2 = obj.pos - Vec2(0, obj.get_radius())
+            if upper_point.y < block.rect.bottom and obj.is_fully_submerged:
+                is_fully_submerged = False
+                self.create_ripple(block_inx, obj)
+            elif upper_point.y > block.rect.bottom:
+                is_fully_submerged = True
+
+        depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
+        return is_touching, is_submerged, is_fully_submerged, depth
+
+    def check_collision(self, objects: list[Object]):
         """ Checks for objects near water and resolves collisions on nearby objects """
         for obj in objects:
             if not obj.static:
-                in_water = False
-                depth = 0.0
+                is_touching = False
+                is_submerged = False
+                is_fully_submerged = False
 
-                projected_point: Vec2 = (self.bounds_centre_pos - obj.pos).normalise_self() * obj.get_radius()
-                projected_point += obj.pos  # to world space
-                in_loose_bounds = is_point_in_rect(projected_point, self.bounds_pos, self.bounds_bottom_right)
+                in_loose_bounds = is_point_in_rect(obj.pos, self.bounds_pos, self.bounds_bottom_right)
 
                 if in_loose_bounds:
-                    in_water, depth = self.resolve_collision(obj)
+                    is_touching, is_submerged, is_fully_submerged, depth = self.resolve_collision(obj)
+                    obj.water_depth = depth
 
-                obj.in_water = in_water
-                obj.water_depth = depth
+                obj.is_touching_water = is_touching
+                obj.is_submerged = is_submerged
+                obj.is_fully_submerged = is_fully_submerged
 
     def update(self):
+        for b in self.blocks:
+            b.update()
         self.add_queued_ripples()
         self.update_all_ripples()
 

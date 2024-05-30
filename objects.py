@@ -27,7 +27,9 @@ class Object:
         self.layer: int = layer
 
         # water
-        self.in_water: bool = False
+        self.is_touching_water: bool = False
+        self.is_fully_submerged: bool = False
+        self.is_submerged: bool = False
         self.water_depth: float = 0.0
 
         # texture
@@ -72,7 +74,7 @@ class Object:
             self.velocity += gravity_force * dt_h
 
             # apply drag
-            if self.in_water:
+            if self.is_fully_submerged:
                 pass
 
             self.angular_velocity += self.torque * self.inv_inertia * dt_h
@@ -166,12 +168,11 @@ class Polygon(Object):
     def __init__(self, pos: Vec2, vertices=None, static=DEF_STATIC, material=DEF_MAT, layer=DEF_LAYER):
         super().__init__(pos, static, material, layer)
         self._object_type = 'Poly'
-        self.vertex_count = 0
-        self.vertices: list[Vec2] = []
+        self.vertex_count: int
+        self.vertices: list[Vec2]
         self.normals: list[Vec2] = []
 
-        self.inner_radius: float = sys.float_info.max
-        self.outer_radius: float = -sys.float_info.max
+        self.mid_radius: float
 
         if vertices is not None:
             self.set(vertices)
@@ -214,12 +215,17 @@ class Polygon(Object):
 
     def find_radii(self):
         """ Find smallest and largest radii of object (should be done after mass is computed and com is set) """
+        inner_radius: float = sys.float_info.max
+        outer_radius: float = -sys.float_info.max
+
         for v in self.vertices:
             dist = round_up((self.pos - (self.pos + v)).length(), 2)
-            if dist < self.inner_radius:
-                self.inner_radius = dist
-            if dist > self.outer_radius:
-                self.outer_radius = dist
+            if dist < inner_radius:
+                inner_radius = dist
+            if dist > outer_radius:
+                outer_radius = dist
+
+        self.mid_radius = (inner_radius + outer_radius) / 2
 
     def set(self, verts: list[Vec2]):
         """ Set vertices for polygon & (re) calculate the mass """
@@ -274,12 +280,11 @@ class Polygon(Object):
         self.mat2.set_rad(self.orientation)
 
     def get_radius(self) -> float:
-        return self.outer_radius
+        return self.mid_radius
 
     def render(self, screen: pg.Surface):
         if not self.static:
-            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.inner_radius, 1)
-            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.outer_radius, 1)
+            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.mid_radius, 1)
 
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
         last_vertex: Vec2 = self.get_oriented_vert(-1)
