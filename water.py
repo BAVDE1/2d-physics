@@ -223,22 +223,24 @@ class Water:
 
         block_inx: int = math.floor((obj.pos.x - self.pos.x) / self.blocks_size)
         block: WaterBlock = self.blocks[clamp(block_inx, 0, len(self.blocks) - 1)]
+        top: float = block.rect.top
+        btm: float = block.rect.bottom
 
         # check below object
-        lower_point: Vec2 = obj.pos + Vec2(0, obj.get_radius())
-        if lower_point.y > block.rect.top and not obj.is_touching_water and not is_submerged:
+        lower: float = obj.pos.y + obj.get_radius()
+        if lower > top and not is_touching and not is_submerged:
             is_touching = True
             self.create_ripple(block_inx, obj)
-        elif lower_point.y < block.rect.top:
+        elif lower < top:
             is_touching = False
 
-        # check above obj
+        # check above obj if pos below surface
         if is_submerged:
-            upper_point: Vec2 = obj.pos - Vec2(0, obj.get_radius())
-            if upper_point.y < block.rect.bottom and obj.is_fully_submerged:
+            upper: float = obj.pos.y - obj.get_radius()
+            if upper < btm and is_fully_submerged:
                 is_fully_submerged = False
                 self.create_ripple(block_inx, obj)
-            elif upper_point.y > block.rect.bottom:
+            elif upper > btm:
                 is_fully_submerged = True
 
         depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
@@ -248,10 +250,7 @@ class Water:
         """ Checks for objects near water and resolves collisions on nearby objects """
         for obj in objects:
             if not obj.static:
-                is_touching = False
-                is_submerged = False
-                is_fully_submerged = False
-
+                is_touching = is_submerged = is_fully_submerged = False
                 in_loose_bounds = is_point_in_rect(obj.pos, self.bounds_pos, self.bounds_bottom_right)
 
                 if in_loose_bounds:
