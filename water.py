@@ -149,7 +149,7 @@ class Water:
         self.re_scale_size()
 
     def re_scale_size(self):
-        """ Re-scale the size of water & its re-calculate bounds """
+        """ Re-scale the size of water based on num of blocks generated & its re-calculate bounds """
         x_size = self.blocks_size * len(self.blocks)
         self.size.x = x_size
         self.bounds_size.x = x_size
@@ -168,7 +168,8 @@ class Water:
         return li
 
     def create_ripple(self, block_inx: int, obj: Object):
-        """ Calculate necessary values for the new ripple & add to queue if strong enough """
+        """ Calculate necessary values for the new ripple & spawn if strong enough """
+        self.queue_ripple(block_inx)
 
     def queue_ripple(self, block_inx: int, strength=5.0, speed: float = BASE_RIPPLE_SPEED):
         """ Add new ripple to the ripple queue. Inserts at beginning of queue """
@@ -216,15 +217,15 @@ class Water:
             self.queued_ripples.clear()
 
     def resolve_collision(self, obj: Object) -> tuple[bool, bool, bool, float]:
-        """ Called when object is within the bounds of the water """
+        """ Called when object is within the loose bounds of the water """
         is_touching = obj.is_touching_water
         is_submerged = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
         is_fully_submerged = obj.is_fully_submerged
 
         block_inx: int = math.floor((obj.pos.x - self.pos.x) / self.blocks_size)
         block: WaterBlock = self.blocks[clamp(block_inx, 0, len(self.blocks) - 1)]
-        top: float = block.rect.top
-        btm: float = block.rect.bottom
+        top: float = block.coll_bounds.top
+        btm: float = block.coll_bounds.bottom
 
         # check below object
         lower: float = obj.pos.y + obj.get_radius()
@@ -264,8 +265,9 @@ class Water:
     def update(self):
         for b in self.blocks:
             b.update()
-        self.add_queued_ripples()
+
         self.update_all_ripples()
+        self.add_queued_ripples()
 
     def render(self, screen: pg.Surface):
         pg.draw.rect(screen, Colours.DARKER_GREY, pg.Rect(self.bounds_pos.get(), self.bounds_size.get()), 2)
