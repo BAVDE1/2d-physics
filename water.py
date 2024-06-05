@@ -152,6 +152,9 @@ class Water:
 
         self.re_scale_size()
 
+        self.a = None
+        self.b = None
+
     def re_scale_size(self):
         """ Re-scale the size of water based on num of blocks generated & its re-calculate bounds """
         x_size = self.blocks_size * len(self.blocks)
@@ -188,15 +191,25 @@ class Water:
                 max_strength -= (3 - (mass_perc * 3))
 
             strength: float = clamp(strength, min_strength, max_strength)
-
             speed: float = MIN_RIPPLE_SPEED + (strength * 2) - (2 - mass_perc * 2)
+
+            # offset ripple starting point
+            if moving_horizontal:
+                on_radius: Vec2 = Vec2(obj.pos.x, self.pos.y) - obj.pos
+                on_radius.x -= obj.get_radius() - abs(on_radius.y)
+                on_radius.normalise_self(x_only=True)
+                on_radius *= Vec2(obj.get_radius(), 1)
+                if obj.velocity.x > 0:
+                    on_radius.x = -on_radius.x  # flip side
+                self.a = obj.pos
+                self.b = on_radius
+                block_inx = self.get_block_inx(obj.pos.x + on_radius.x)
             self.queue_ripple(block_inx, strength=strength, speed=speed)
 
     def queue_ripple(self, block_inx: int, strength=MAX_STRENGTH, speed=BASE_RIPPLE_SPEED):
         """ Add new ripple to the ripple queue. Inserts at beginning of queue """
         sp_mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
-        inx = len([i for i in self.queued_ripples if i.strength > strength])
-        self.queued_ripples.insert(inx, Ripple(strength, block_inx, len(self.blocks), speed * max(1.0, sp_mul)))
+        self.queued_ripples.insert(0, Ripple(strength, block_inx, len(self.blocks), speed * max(1.0, sp_mul)))
 
     def update_ripple(self, ripple, ripple_inx, offset) -> bool:
         """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was kept """
@@ -238,6 +251,11 @@ class Water:
             self.ripples = self.queued_ripples + self.ripples
             self.queued_ripples.clear()
 
+    def get_block_inx(self, x: float):
+        """ Get block inx on x pos """
+        inx = math.floor((x - self.pos.x) / self.blocks_size)
+        return clamp(inx, 0, len(self.blocks) - 1)
+
     def resolve_collision(self, obj: Object) -> tuple[bool, bool, bool, float]:
         """ Called when object is within the loose bounds of the water """
         has_sent_ripple = False
@@ -245,7 +263,7 @@ class Water:
         is_submerged = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
         is_fully_submerged = obj.is_fully_submerged
 
-        block_inx: int = math.floor((obj.pos.x - self.pos.x) / self.blocks_size)
+        block_inx: int = self.get_block_inx(obj.pos.x)
         block: WaterBlock = self.blocks[clamp(block_inx, 0, len(self.blocks) - 1)]
         top: float = block.coll_bounds.top
         btm: float = block.coll_bounds.bottom
@@ -301,3 +319,5 @@ class Water:
         pg.draw.rect(screen, Colours.DARK_GREY, pg.Rect(self.pos.get(), self.size.get()), 2)
         for b in self.blocks:
             b.render(screen)
+        if self.a and self.b:
+            pg.draw.line(screen, Colours.RED, self.a.get(), (self.a + self.b).get())
