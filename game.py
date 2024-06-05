@@ -108,7 +108,7 @@ class Game:
 
         # objects
         self.holding_obj: Object | None = None
-        o1 = Circle(Vec2(90, 60), 7)
+        o1 = Circle(Vec2(90, 60), 8)
         o2 = Circle(Vec2(60, 60))
         o3 = Circle(Vec2(200, 30), 10)
         o4 = Circle(Vec2(120, 100), 20)

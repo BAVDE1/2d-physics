@@ -6,13 +6,19 @@ from Vec2 import Vec2
 from objects import Object
 
 
-# todo: ripples spawned on object collision of water surface. Object velocity & mass affects ripple behaviour (strength, speed)
+# done: ripples spawned on object collision of water surface. Object velocity & mass affects ripple behaviour (strength, speed)
 # todo: apply water force & drag on submerged object
 # todo: have material density & object mass affect under-water forces
 
 
-BASE_RIPPLE_SPEED = 15
-BASE_SPEED_MUL = 4
+MIN_RIPPLE_SPEED = 8.0
+BASE_RIPPLE_SPEED = 15.0
+BASE_SPEED_MUL = 4.0
+
+MAX_VEL_LENGTH = 250.0
+MAX_MASS = 1000
+MIN_STRENGTH = 2.0
+MAX_STRENGTH = 5.0
 
 
 class Ripple:
@@ -89,7 +95,7 @@ class WaterBlock:
         self.prev_rect: pg.Rect = self.rect.copy()
         self.og_display_rect: pg.Rect = pg.Rect(self.rect)
 
-        margin: float = size * 1.5
+        margin: float = size * 1
         self.coll_bounds: pg.Rect = pg.Rect(self.rect.x, self.rect.y - margin / 2,
                                             self.rect.w, self.rect.h + margin)
         self.mouse_in: bool = False
@@ -119,8 +125,6 @@ class WaterBlock:
         self.rect = new_r
 
     def render(self, screen: pg.Surface):
-        # display cube
-        pg.draw.rect(screen, Colours.RED, self.coll_bounds)
         if self.prev_rect != self.rect:
             pg.draw.rect(screen, Colours.BLUE, self.prev_rect)  # behind block
         pg.draw.rect(screen, Colours.LIGHT_BLUE, self.rect)
@@ -167,14 +171,32 @@ class Water:
             li.append(WaterBlock(self, pos, self.blocks_size, i))
         return li
 
-    def create_ripple(self, block_inx: int, obj: Object):
+    def create_ripple(self, block_inx: int, obj: Object, moving_horizontal: bool = False):
         """ Calculate necessary values for the new ripple & spawn if strong enough """
-        self.queue_ripple(block_inx)
+        strength: float = (min(obj.velocity.length(), MAX_VEL_LENGTH) / MAX_VEL_LENGTH) * 10.0
+        strength_threshold = 0.5
+        if moving_horizontal:
+            strength_threshold *= 2
 
-    def queue_ripple(self, block_inx: int, strength=5.0, speed: float = BASE_RIPPLE_SPEED):
+        # skip if too little velocity
+        if strength > strength_threshold:
+            mass_perc = min(obj.mass, MAX_MASS) / MAX_MASS
+            min_strength = MIN_STRENGTH
+            max_strength = MAX_STRENGTH
+            if moving_horizontal:
+                min_strength -= 1
+                max_strength -= (3 - (mass_perc * 3))
+
+            strength: float = clamp(strength, min_strength, max_strength)
+
+            speed: float = MIN_RIPPLE_SPEED + (strength * 2) - (2 - mass_perc * 2)
+            self.queue_ripple(block_inx, strength=strength, speed=speed)
+
+    def queue_ripple(self, block_inx: int, strength=MAX_STRENGTH, speed=BASE_RIPPLE_SPEED):
         """ Add new ripple to the ripple queue. Inserts at beginning of queue """
-        mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
-        self.queued_ripples.insert(0, Ripple(strength, block_inx, len(self.blocks), speed * max(1, mul)))
+        sp_mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
+        inx = len([i for i in self.queued_ripples if i.strength > strength])
+        self.queued_ripples.insert(inx, Ripple(strength, block_inx, len(self.blocks), speed * max(1.0, sp_mul)))
 
     def update_ripple(self, ripple, ripple_inx, offset) -> bool:
         """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was kept """
@@ -218,6 +240,7 @@ class Water:
 
     def resolve_collision(self, obj: Object) -> tuple[bool, bool, bool, float]:
         """ Called when object is within the loose bounds of the water """
+        has_sent_ripple = False
         is_touching = obj.is_touching_water
         is_submerged = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
         is_fully_submerged = obj.is_fully_submerged
@@ -230,19 +253,23 @@ class Water:
         # check below object
         lower: float = obj.pos.y + obj.get_radius()
         if lower > top and not is_touching and not is_submerged:
-            is_touching = True
+            is_touching = has_sent_ripple = True
             self.create_ripple(block_inx, obj)
         elif lower < top:
             is_touching = False
 
         # check above obj if pos below surface
-        if is_submerged:
+        if is_submerged and not has_sent_ripple:
             upper: float = obj.pos.y - obj.get_radius()
             if upper < btm and is_fully_submerged:
-                is_fully_submerged = False
+                is_fully_submerged = has_sent_ripple = False
                 self.create_ripple(block_inx, obj)
             elif upper > btm:
-                is_fully_submerged = True
+                is_touching = is_fully_submerged = True
+
+        # object in water surface (moving horizontally)
+        if is_touching and not is_fully_submerged and not has_sent_ripple:
+            self.create_ripple(block_inx, obj, moving_horizontal=True)
 
         depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
         return is_touching, is_submerged, is_fully_submerged, depth
