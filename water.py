@@ -23,7 +23,8 @@ MAX_STRENGTH = 5.0
 
 class Ripple:
     """ Generates the block order that a ripple will travel (in both directions) """
-    def __init__(self, strength: float, start_inx: int, max_inx: int, speed: float):
+    def __init__(self, strength: float, start_inx: int, max_inx: int, speed: float, direction: int):
+        self.direction: int = direction  # < -1, < 0 >, 1 >
         self.strength: float = strength
         self.strength_decay: float = 0.98
         self.ripple_speed: float = 1 / speed
@@ -176,40 +177,45 @@ class Water:
 
     def create_ripple(self, block_inx: int, obj: Object, moving_horizontal: bool = False):
         """ Calculate necessary values for the new ripple & spawn if strong enough """
-        strength: float = (min(obj.velocity.length(), MAX_VEL_LENGTH) / MAX_VEL_LENGTH) * 10.0
+        bias_velocity = Vec2(obj.velocity.x / 2, obj.velocity.y)  # more dependant on y
+        strength: float = (min(bias_velocity.length(), MAX_VEL_LENGTH) / MAX_VEL_LENGTH) * 10.0
         strength_threshold = 0.5
         if moving_horizontal:
-            strength_threshold *= 2
+            strength_threshold *= 2  # more velocity required to ripple
 
         # skip if too little velocity
-        if strength > strength_threshold:
-            mass_perc = min(obj.mass, MAX_MASS) / MAX_MASS
-            min_strength = MIN_STRENGTH
-            max_strength = MAX_STRENGTH
-            if moving_horizontal:
-                min_strength -= 1
-                max_strength -= (3 - (mass_perc * 3))
+        if strength < strength_threshold:
+            return
 
-            strength: float = clamp(strength, min_strength, max_strength)
-            speed: float = MIN_RIPPLE_SPEED + (strength * 2) - (2 - mass_perc * 2)
+        direction = 0
+        mass_perc = min(obj.mass, MAX_MASS) / MAX_MASS  # mass / max mass
+        min_strength = float(MIN_STRENGTH)
+        max_strength = float(MAX_STRENGTH)
+        if moving_horizontal:  # reduce strength
+            min_strength -= 1
+            max_strength -= (3 - (mass_perc * 3))
 
-            # offset ripple starting point
-            if moving_horizontal:
-                on_radius: Vec2 = Vec2(obj.pos.x, self.pos.y) - obj.pos
-                on_radius.x -= obj.get_radius() - abs(on_radius.y)
-                on_radius.normalise_self(x_only=True)
-                on_radius *= Vec2(obj.get_radius(), 1)
-                if obj.velocity.x > 0:
-                    on_radius.x = -on_radius.x  # flip side
-                self.a = obj.pos
-                self.b = on_radius
-                block_inx = self.get_block_inx(obj.pos.x + on_radius.x)
-            self.queue_ripple(block_inx, strength=strength, speed=speed)
+        strength: float = clamp(strength, min_strength, max_strength)
+        speed: float = MIN_RIPPLE_SPEED + (strength * 2) - (2 - mass_perc * 2)
 
-    def queue_ripple(self, block_inx: int, strength=MAX_STRENGTH, speed=BASE_RIPPLE_SPEED):
+        # offset ripple starting point
+        if moving_horizontal:
+            y = self.pos.y - obj.pos.y
+            x = -(obj.get_radius() - abs(y))
+            on_radius: Vec2 = Vec2(x, y).normalise_self(x_only=True)
+            on_radius.x *= obj.get_radius()
+
+            direction = int((obj.velocity.x > 0) * 2 - 1)  # set direction: -1 or 1
+            if direction > 0:  # flip side
+                on_radius.x = -on_radius.x
+
+            block_inx = self.get_block_index(obj.pos.x + on_radius.x)
+        self.queue_ripple(block_inx, strength=strength, speed=speed, direction=direction)
+
+    def queue_ripple(self, block_inx: int, strength=MAX_STRENGTH, speed=BASE_RIPPLE_SPEED, direction=0):
         """ Add new ripple to the ripple queue. Inserts at beginning of queue """
         sp_mul = BASE_SPEED_MUL + (BASE_SPEED_MUL - self.blocks_size)
-        self.queued_ripples.insert(0, Ripple(strength, block_inx, len(self.blocks), speed * max(1.0, sp_mul)))
+        self.queued_ripples.insert(0, Ripple(strength, block_inx, len(self.blocks), speed * max(1.0, sp_mul), direction))
 
     def update_ripple(self, ripple, ripple_inx, offset) -> bool:
         """ Progress ripple, giving sines and spawning rebound ripples if needed. Returns whether ripple was kept """
@@ -251,8 +257,8 @@ class Water:
             self.ripples = self.queued_ripples + self.ripples
             self.queued_ripples.clear()
 
-    def get_block_inx(self, x: float):
-        """ Get block inx on x pos """
+    def get_block_index(self, x: float):
+        """ Get block index on x pos """
         inx = math.floor((x - self.pos.x) / self.blocks_size)
         return clamp(inx, 0, len(self.blocks) - 1)
 
@@ -263,7 +269,7 @@ class Water:
         is_submerged = is_point_in_rect(obj.pos, self.pos, self.pos + self.size)
         is_fully_submerged = obj.is_fully_submerged
 
-        block_inx: int = self.get_block_inx(obj.pos.x)
+        block_inx: int = self.get_block_index(obj.pos.x)
         block: WaterBlock = self.blocks[clamp(block_inx, 0, len(self.blocks) - 1)]
         top: float = block.coll_bounds.top
         btm: float = block.coll_bounds.bottom
@@ -277,7 +283,7 @@ class Water:
             is_touching = False
 
         # check above obj if pos below surface
-        if is_submerged and not has_sent_ripple:
+        if not has_sent_ripple and is_submerged:
             upper: float = obj.pos.y - obj.get_radius()
             if upper < btm and is_fully_submerged:
                 is_fully_submerged = has_sent_ripple = False
@@ -286,7 +292,7 @@ class Water:
                 is_touching = is_fully_submerged = True
 
         # object in water surface (moving horizontally)
-        if is_touching and not is_fully_submerged and not has_sent_ripple:
+        if not has_sent_ripple and (is_touching or is_submerged) and not is_fully_submerged:
             self.create_ripple(block_inx, obj, moving_horizontal=True)
 
         depth = clamp(obj.pos.y - self.pos.y, 0.0, self.size.y)
