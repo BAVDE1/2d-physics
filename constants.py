@@ -48,7 +48,7 @@ def clamp(value, min_v, max_v):
 
 def round_up(value, d_places=0) -> float:
     """ Rounds given value up by 0 or more decimal places """
-    places_int = int('1' + '0' * d_places)
+    places_int = 10 ** d_places
     return math.ceil(value * places_int) / places_int
 
 
@@ -69,6 +69,8 @@ class Forces:
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
     GRAVITY = Vec2(0, 100)  # 100
+
+    WATER_VISCOSITY = 1.3  # coefficient of viscosity
 
     WATER_DENSITY = 1  # 1.3?
     WATER_VELOCITY = Vec2(0, -40)

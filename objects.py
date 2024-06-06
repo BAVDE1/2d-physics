@@ -31,6 +31,7 @@ class Object:
         self.is_fully_submerged: bool = False
         self.is_submerged: bool = False
         self.water_depth: float = 0.0
+        self.drag_coefficient = 0.5
 
         # texture
         self.colour = Colours.WHITE
@@ -70,14 +71,25 @@ class Object:
             dt_h = dt * 0.5
             self.velocity += self.force * dt_h  # external force
 
-            gravity_force = Forces.GRAVITY
+            gravity_force: Vec2 = Forces.GRAVITY
             self.velocity += gravity_force * dt_h
 
             # apply drag
-            if self.is_fully_submerged:
-                pass
+            self.velocity += self.calculate_drag()
 
             self.angular_velocity += self.torque * self.inv_inertia * dt_h
+
+    def calculate_drag(self) -> Vec2:
+        """ Calculate the drag to be applied to object """
+        drag: Vec2 = Vec2()
+
+        if self.is_submerged:
+            # val = 6 * math.pi * Forces.WATER_VISCOSITY * self.get_radius()
+            # val = .5 * 1 * (self.velocity * self.velocity) * Forces.WATER_VISCOSITY
+            # drag = val
+            pass
+
+        return drag
 
     def set_orient(self):
         pass
