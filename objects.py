@@ -99,12 +99,14 @@ class Object:
 
     def update(self, dt):
         """ See README on better dt """
-        self.pos += self.velocity * dt
-        self.orientation += self.angular_velocity * dt
-        self.set_orient()
+        if not self.static:
+            self.pos += self.velocity * dt
+            self.orientation += self.angular_velocity * dt
+            self.set_orient()
 
-        self.update_velocity(dt)
-        self.static_correction()
+            self.update_velocity(dt)
+        else:
+            self.static_correction()
 
     def is_point_in_obj(self, p: Vec2):
         return False

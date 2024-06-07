@@ -120,7 +120,7 @@ class Game:
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
         sc = Circle(Vec2(170, 80), 25, static=True)
 
-        self.objects_group = Group([g1, g2, g3, sc])
+        self.objects_group = Group([o1, o2, o3, o4, pa, pb, g1, g2, g3, sc])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -237,6 +237,7 @@ class Game:
         # conclusion
         for i, obj in enumerate(objects):
             obj.force.set(0, 0)
+            obj.torque = 0
 
             if obj.is_out_of_bounds():
                 self.objects_group.remove_at_index(i, obj)

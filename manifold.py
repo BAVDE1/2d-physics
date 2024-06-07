@@ -6,10 +6,10 @@ from objects import Object, Circle, Polygon
 
 # fixed: second object (b) appears to gain velocity exponentially when colliding (object type disregarded)
 # fixed: Poly:Poly collision does not seem to detect every collision (after rotation was implemented)
-# todo: IMPORTANT collisions inside objects are not resolving / not resolving properly (could fix other bugs)
-# todo: Poly:Poly collusion does not seem to apply impulse when rotating into another (sometimes)
-# todo: Once inside another object, objects do not actively push away from each other (not very much at least)
-# todo: Poly very slowly sinking into static Poly (could be fixed by above bug)
+# done: IMPORTANT collisions inside objects are not resolving / not resolving properly (could fix other bugs)
+# fixed: Poly:Poly collusion does not seem to apply impulse when rotating into another (sometimes)
+# fixed: Once inside another object, objects do not actively push away from each other (not very much at least)
+# fixed: Poly very slowly sinking into static Poly (could be fixed by above bug)
 
 
 class Manifold:
@@ -101,10 +101,10 @@ class Manifold:
 
     def positional_correction(self):
         """ Fix floating point errors (using linear projection) """
-        correction = max(self.penetration - Forces.PENETRATION_ALLOWANCE, 0.0) / (self.a.mass + self.b.mass) * Forces.POSITIONAL_CORRECTION
+        correction = max(self.penetration - Forces.PENETRATION_ALLOWANCE, 0.0) / (self.a.inv_mass + self.b.inv_mass) * Forces.POSITIONAL_CORRECTION
 
-        self.a.pos += self.normal * (self.a.inv_mass * correction)
-        self.b.pos += self.normal * (-self.b.inv_mass * correction)
+        self.a.pos += self.normal * (-self.a.inv_mass * correction)
+        self.b.pos += self.normal * (self.b.inv_mass * correction)
 
     def render(self, screen: pg.Surface):
         for i in range(self.contact_count):

@@ -64,7 +64,7 @@ def greater_than(a: float, b: float):
 
 class Forces:
     PENETRATION_ALLOWANCE = 0.05  # aka slop
-    POSITIONAL_CORRECTION = 0.8  # 20% - 80%
+    POSITIONAL_CORRECTION = 0.2  # 20% - 80%
     BIAS_RELATIVE = 0.95
     BIAS_ABSOLUTE = 0.01
     INF_MASS = 0
@@ -94,7 +94,7 @@ class Values:
 
     SCREEN_WIDTH = 300
     SCREEN_HEIGHT = 200
-    RES_MUL = 4
+    RES_MUL = 3
 
 
 class Colours:
