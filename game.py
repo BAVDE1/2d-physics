@@ -118,8 +118,9 @@ class Game:
         g1 = SquarePoly(Vec2(50, 160), size=Vec2(200, 10), static=True)
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
+        sc = Circle(Vec2(170, 80), 25, static=True)
 
-        self.objects_group = Group([o1, o2, o3, o4, pa, pb, g1, g2, g3])
+        self.objects_group = Group([g1, g2, g3, sc])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
@@ -164,9 +165,7 @@ class Game:
                 self.running = False
 
     def mouse_r_down(self):
-        r = 5
         p = self.mp.clone()
-        p.y -= r + 10
         for _ in range(8):
             self.particles_group.add(
                 Particle(p, velocity=Vec2(random.randrange(-50, 50), random.randrange(-100, -50)),

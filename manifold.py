@@ -1,5 +1,3 @@
-import decimal
-import math
 import sys
 
 from constants import *
@@ -8,6 +6,7 @@ from objects import Object, Circle, Polygon
 
 # fixed: second object (b) appears to gain velocity exponentially when colliding (object type disregarded)
 # fixed: Poly:Poly collision does not seem to detect every collision (after rotation was implemented)
+# todo: IMPORTANT collisions inside objects are not resolving / not resolving properly (could fix other bugs)
 # todo: Poly:Poly collusion does not seem to apply impulse when rotating into another (sometimes)
 # todo: Once inside another object, objects do not actively push away from each other (not very much at least)
 # todo: Poly very slowly sinking into static Poly (could be fixed by above bug)
@@ -55,7 +54,7 @@ class Manifold:
             rel_b: Vec2 = self.contact_points[i] - self.b.pos
             rel_vel: Vec2 = self.get_relative_velocity(rel_a, rel_b)
 
-            contact_vel = rel_vel.dot(self.normal)
+            contact_vel: float = rel_vel.dot(self.normal)
             if contact_vel > 0:  # separating, do not apply impulse
                 return
 
@@ -121,10 +120,10 @@ class Manifold:
 
 def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle) -> bool:
     normal = c2.pos - c1.pos
-    r = c1.radius + c2.radius
+    radius = c1.radius + c2.radius
 
     # not colliding, ignore
-    if normal.length_sq() >= r * r:
+    if normal.length_sq() >= radius * radius:
         return False
 
     dist = normal.length()
@@ -133,14 +132,11 @@ def circle_colliding_circle(m: Manifold, c1: Circle, c2: Circle) -> bool:
     if dist == 0:  # they are on same pos (chose random value)
         m.normal.set(1, 0)
         m.penetration = c1.radius
-
-        m.contact_points[0].set(*c1.pos.get())
+        m.contact_points[0] = c1.pos.clone()
     else:
         m.normal = normal / dist  # normalise
-        m.penetration = r - dist
-
-        cp_a = c1.pos + (m.normal * (c1.radius - m.penetration * .5))  # middle of penetration
-        m.contact_points[0].set(*cp_a.get())
+        m.penetration = radius - dist
+        m.contact_points[0] = (m.normal * c1.radius + c1.pos).clone()
     return True
 
 
