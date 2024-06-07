@@ -56,7 +56,7 @@ class Manifold:
             rel_vel: Vec2 = self.get_relative_velocity(rel_a, rel_b)
 
             contact_vel = rel_vel.dot(self.normal)
-            if contact_vel > 0:  # separating, do not collide
+            if contact_vel > 0:  # separating, do not apply impulse
                 return
 
             ra_cross_n: float = rel_a.cross_vec(self.normal)
@@ -69,11 +69,11 @@ class Manifold:
             restitution_vec: Vec2 = Vec2(restitution, 0.0 if is_resting else restitution)  # fix jitter-ing objects
             rebound_vec: Vec2 = -(restitution_vec + 1)
 
+            # impulse
             impulse_scalar: Vec2 = Vec2(rebound_vec.x, rebound_vec.y) * contact_vel
             impulse_scalar /= inv_masses
             impulse_scalar /= self.contact_count
 
-            # normal application of impulse (backward cause pygame)
             impulse: Vec2 = self.normal * impulse_scalar
             self.a.apply_impulse(impulse.negate(), rel_a)
             self.b.apply_impulse(impulse, rel_b)

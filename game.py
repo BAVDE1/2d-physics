@@ -108,7 +108,7 @@ class Game:
 
         # objects
         self.holding_obj: Object | None = None
-        o1 = Circle(Vec2(90, 60), 20)
+        o1 = Circle(Vec2(90, 60), 7)
         o2 = Circle(Vec2(60, 60))
         o3 = Circle(Vec2(200, 30), 10)
         o4 = Circle(Vec2(120, 100), 20)
@@ -119,7 +119,7 @@ class Game:
         g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
         g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
 
-        self.objects_group = Group([o1, g1, g2, g3])
+        self.objects_group = Group([o1, o2, o3, o4, pa, pb, g1, g2, g3])
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
