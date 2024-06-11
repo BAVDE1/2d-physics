@@ -173,7 +173,7 @@ class Game:
             )
 
         for i in range(1):
-            c = Circle(p, 5)
+            c = Circle(p, 7)
             c.colour = [random.randrange(0, 255) for _ in range(3)]
             self.objects_group.add(c)
 

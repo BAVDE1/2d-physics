@@ -63,7 +63,7 @@ class Manifold:
             inv_masses: float = self.a.inv_mass + self.b.inv_mass + ((ra_cross_n ** 2) * self.a.inv_inertia) + ((rb_cross_n ** 2) * self.b.inv_inertia)
 
             # restitution & rebound
-            is_resting = rel_vel.y ** 2 < Values.RESTING
+            is_resting = rel_vel.y ** 2 <= Values.RESTING
             restitution: float = min(self.a.material.restitution, self.b.material.restitution)  # coefficient of restitution
             restitution_vec: Vec2 = Vec2(restitution, 0.0 if is_resting else restitution)  # fix jitter-ing objects
             rebound_vec: Vec2 = -(restitution_vec + 1)
