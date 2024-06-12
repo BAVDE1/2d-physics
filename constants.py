@@ -41,6 +41,13 @@ def do_lines_cross(line_a: tuple[Vec2, Vec2], line_b: tuple[Vec2, Vec2]) -> bool
     return cc_1 or cc_2 or cc_3 or cc_4
 
 
+def get_type_of(obj):
+    """ Returns type of object """
+    if hasattr(obj, 'get_type'):
+        return obj.get_type()
+    return type(obj)
+
+
 def clamp(value, min_v, max_v):
     """ Clamps value between given min and max """
     return max(min_v, min(max_v, value))

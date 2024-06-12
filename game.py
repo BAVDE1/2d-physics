@@ -38,19 +38,13 @@ class Group:
     def set_type(self, obj):
         """ set group type if not set """
         if self.group_type is None:
-            self.group_type = self.get_type_of(obj)
-
-    def get_type_of(self, obj):
-        """ Returns type of object """
-        if hasattr(obj, 'get_type'):
-            return obj.get_type()
-        return type(obj)
+            self.group_type = get_type_of(obj)
 
     def add(self, obj):
         """ Add new layer to dict (if needed), insert object at end of objects' layer in list """
         self.set_type(obj)
 
-        if self.get_type_of(obj) == self.group_type:
+        if get_type_of(obj) == self.group_type:
             l = obj.layer
             if l not in self.layer_nums:
                 self.layer_nums[l] = 0
@@ -173,7 +167,7 @@ class Game:
             )
 
         for i in range(1):
-            c = Circle(p, 5)
+            c = Circle(p, random.randint(4, 10))
             c.colour = [random.randrange(0, 255) for _ in range(3)]
             self.objects_group.add(c)
 
