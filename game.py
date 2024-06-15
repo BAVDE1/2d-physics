@@ -118,7 +118,7 @@ class Game:
         self.particles_group = Group()
         self.collisions: list[Manifold] = []
 
-        self.water = Water(Vec2(50, 50), Vec2(150, 50))
+        self.water = Water(Vec2(50, 30), Vec2(150, 50))
 
         # TESTING STUFF
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
@@ -167,7 +167,8 @@ class Game:
             )
 
         for i in range(1):
-            c = Circle(p, random.randint(4, 10))
+            c = Circle(p, random.randint(5, 12))
+            c.orientation = random.randint(0, 360)
             c.colour = [random.randrange(0, 255) for _ in range(3)]
             self.objects_group.add(c)
 

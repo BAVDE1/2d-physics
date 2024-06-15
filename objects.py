@@ -297,9 +297,6 @@ class Polygon(Object):
         return self.mid_radius
 
     def render(self, screen: pg.Surface):
-        if not self.static:
-            pg.draw.circle(screen, Colours.DARK_GREY, self.pos.get(), self.mid_radius, 1)
-
         pg.draw.rect(screen, self.colour, pg.Rect(self.pos.get(), (1, 1)))  # com
         last_vertex: Vec2 = self.get_oriented_vert(-1)
 
