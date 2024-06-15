@@ -81,6 +81,12 @@ class Group:
         except IndexError:
             return False
 
+    def clear(self):
+        """ Clears the entire group & resets the type. """
+        self.layer_nums.clear()
+        self.objects.clear()
+        self.group_type = None
+
     def render_all(self, screen: pg.Surface):
         for obj in self.objects:
             obj.render(screen)
@@ -101,26 +107,16 @@ class Game:
         self.final_screen = pg.display.get_surface()
 
         # objects
-        self.holding_obj: Object | None = None
-        o1 = Circle(Vec2(90, 60), 7)
-        o2 = Circle(Vec2(60, 60))
-        o3 = Circle(Vec2(200, 30), 10)
-        o4 = Circle(Vec2(120, 100), 20)
-        pa = Polygon(Vec2(125, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 20), Vec2(0, 15)])
-        pb = Polygon(Vec2(100, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
-
-        g1 = SquarePoly(Vec2(50, 160), size=Vec2(200, 10), static=True)
-        g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
-        g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
-        sc = Circle(Vec2(170, 80), 25, static=True)
-
-        self.objects_group = Group([o1, o2, o3, o4, pa, pb, g1, g2, g3, sc])
+        self.objects_group = Group()
         self.particles_group = Group()
+        self.holding_obj: Object | None = None
         self.collisions: list[Manifold] = []
 
         self.water = Water(Vec2(50, 30), Vec2(150, 50))
 
-        # TESTING STUFF
+        self.reset_objects()
+
+        # TESTING STUFF (rotating cog lol)
         self.img = pg.Surface((40, 40), pg.SRCALPHA)
         c = Colours.DARKER_GREY
         pg.draw.circle(self.img, c, (20, 20), 15, 7)
@@ -135,6 +131,8 @@ class Game:
             # key input
             if event.type == pg.KEYDOWN:
                 self.keys = pg.key.get_pressed()
+                if event.key == pg.K_r:
+                    self.reset_objects()
 
             if event.type == pg.KEYUP:
                 self.keys = pg.key.get_pressed()
@@ -184,6 +182,22 @@ class Game:
     def mouse_l_up(self):
         if self.holding_obj is not None:
             self.holding_obj = None
+
+    def reset_objects(self):
+        o1 = Circle(Vec2(90, 60), 7)
+        o2 = Circle(Vec2(60, 60))
+        o3 = Circle(Vec2(200, 30), 10)
+        o4 = Circle(Vec2(120, 100), 20)
+        pa = Polygon(Vec2(125, 40), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 20), Vec2(0, 15)])
+        pb = Polygon(Vec2(100, 10), [Vec2(0, 0), Vec2(15, 0), Vec2(15, 15)])
+
+        g1 = SquarePoly(Vec2(50, 160), size=Vec2(200, 10), static=True)
+        g2 = SquarePoly(Vec2(50, 75), size=Vec2(10, 100), static=True)
+        g3 = SquarePoly(Vec2(250, 75), size=Vec2(10, 100), static=True)
+        sc = Circle(Vec2(170, 80), 25, static=True)
+
+        self.objects_group.clear()
+        self.objects_group.add_mul([o1, o2, o3, o4, pa, pb, g1, g2, g3, sc])
 
     def rotate_screen_blit(self, image, angle, pos: Vec2):
         """ Temporary """
